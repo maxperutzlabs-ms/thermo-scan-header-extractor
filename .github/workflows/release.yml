@@ -1,0 +1,55 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build and upload release archive
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build release executable
+        shell: pwsh
+        run: ./scripts/build.ps1
+
+      - name: Package and upload release archive
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $publishDirectory = "./artifacts/publish/win-x64"
+          $fileNames = @(
+            "ThermoScanHeaderExtractor.exe",
+            "ThermoScanHeaderExtractor.pdb",
+            "LICENSE.txt",
+            "RawFileReaderLicense.txt",
+            "RawFileReaderLicense.doc"
+          )
+
+          $files = foreach ($fileName in $fileNames) {
+            $filePath = Join-Path $publishDirectory $fileName
+            if (-not (Test-Path $filePath -PathType Leaf)) {
+              throw "Expected release file was not produced: $filePath"
+            }
+            $filePath
+          }
+
+          $safeTag = $env:RELEASE_TAG -replace '[^A-Za-z0-9._-]', '-'
+          $archivePath = Join-Path $env:GITHUB_WORKSPACE "ThermoScanHeaderExtractor-$safeTag-win-x64.zip"
+          Compress-Archive -Path $files -DestinationPath $archivePath -Force
+
+          gh release upload $env:RELEASE_TAG $archivePath --clobber
