@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>ThermoScanHeaderExtractor</RootNamespace>
+    <AssemblyName>ThermoScanHeaderExtractor</AssemblyName>
+    <Version>0.1.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+    <InformationalVersion>0.1.0</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Keep these versions synchronized with the package filenames in thermo-package-source.json. -->
+    <PackageReference Include="ThermoFisher.CommonCore.Data" Version="8.0.37" />
+    <PackageReference Include="ThermoFisher.CommonCore.RawFileReader" Version="8.0.37" />
+    <PackageReference Include="Parquet.Net" Version="6.0.3" />
+    <EmbeddedResource Include="..\..\third_party\Thermo.RawFileReader\RawFileReaderLicense.txt"
+                      LogicalName="ThermoScanHeaderExtractor.ThirdParty.RawFileReaderLicense.txt" />
+  </ItemGroup>
+</Project>

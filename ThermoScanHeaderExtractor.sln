@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{D6C523DA-5CC7-437C-9D93-2DB159F525B9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThermoScanHeaderExtractor", "src\ThermoScanHeaderExtractor\ThermoScanHeaderExtractor.csproj", "{C2CEB2CC-1626-4CF2-8B9B-CB2378365E62}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C2CEB2CC-1626-4CF2-8B9B-CB2378365E62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C2CEB2CC-1626-4CF2-8B9B-CB2378365E62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C2CEB2CC-1626-4CF2-8B9B-CB2378365E62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C2CEB2CC-1626-4CF2-8B9B-CB2378365E62}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{C2CEB2CC-1626-4CF2-8B9B-CB2378365E62} = {D6C523DA-5CC7-437C-9D93-2DB159F525B9}
+	EndGlobalSection
+EndGlobal
