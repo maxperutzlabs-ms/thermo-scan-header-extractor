@@ -20,7 +20,7 @@ ThermoScanHeaderExtractor is a Windows command-line tool that extracts compact s
 
 ## License and usage restrictions
 
-ThermoScanHeaderExtractor does not yet contain a license. It uses Thermo RawFileReader under the [Thermo RawFileReader license](third_party/Thermo.RawFileReader/RawFileReaderLicense.txt), with the original [Word-format license](third_party/Thermo.RawFileReader/RawFileReaderLicense.doc) retained alongside it.
+ThermoScanHeaderExtractor is licensed under the Apache License 2.0. It depends on Thermo RawFileReader under the terms of the  [Thermo RawFileReader license](third_party/Thermo.RawFileReader/RawFileReaderLicense.txt) (the original [Word document](third_party/Thermo.RawFileReader/RawFileReaderLicense.doc) is also retained for reference).
 
 - **No end-user redistribution:** Thermo's terms require end users to be prohibited from redistributing this software to others.
 - **Non-commercial use:** Thermo's terms prohibit commercial exploitation without Thermo's prior written consent.
@@ -141,7 +141,7 @@ ThermoScanHeaderExtractor.exe sample.raw --tsv --msn -o .\reports
 .
 ├── ThermoScanHeaderExtractor.sln        # Standalone solution
 ├── nuget.config                         # NuGet sources, incl. the local Thermo packages folder
-├── LICENSE.txt                          # License file copied into the build output (does not yet exist)
+├── LICENSE.txt                          # License file copied into the build output
 ├── scripts/
 │   ├── get-thermo-packages.ps1          # Downloads the Thermo NuGet packages
 │   └── build.ps1                        # Reproducible Windows publish script
@@ -154,6 +154,3 @@ ThermoScanHeaderExtractor.exe sample.raw --tsv --msn -o .\reports
 ├── artifacts/publish/<runtime>/         # Build output (git-ignored, created by `build.ps1`)
 └── README.md
 ```
-
-The publish script also expects a root-level `LICENSE.txt`, which is not currently
-included in this checkout.
