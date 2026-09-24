@@ -9,9 +9,18 @@ ThermoScanHeaderExtractor is a Windows command-line tool that extracts compact s
 > dependencies, or release archives. Do not publish a release until the Thermo
 > redistribution authorization and applicable legal review are in place.
 
+## Overview
+
+- [License and usage restrictions](#license-and-usage-restrictions)
+- [Requirements](#requirements)
+- [Thermo RawFileReader packages](#thermo-rawfilereader-packages)
+- [Build](#build)
+- [CLI usage](#cli-usage)
+- [Repository layout](#repository-layout)
+
 ## License and usage restrictions
 
-ThermoScanHeaderExtractor is governed by the draft proprietary [ThermoScanHeaderExtractor license](LICENSE.txt). It uses Thermo RawFileReader under the [Thermo RawFileReader license](third_party/Thermo.RawFileReader/RawFileReaderLicense.txt), with the original [Word-format license](third_party/Thermo.RawFileReader/RawFileReaderLicense.doc) retained alongside it.
+ThermoScanHeaderExtractor does not yet contain a license. It uses Thermo RawFileReader under the [Thermo RawFileReader license](third_party/Thermo.RawFileReader/RawFileReaderLicense.txt), with the original [Word-format license](third_party/Thermo.RawFileReader/RawFileReaderLicense.doc) retained alongside it.
 
 - **No end-user redistribution:** Thermo's terms require end users to be prohibited from redistributing this software to others.
 - **Non-commercial use:** Thermo's terms prohibit commercial exploitation without Thermo's prior written consent.
@@ -21,29 +30,35 @@ The `--agree-to-terms` command displays the embedded Thermo agreement and record
 
 The read-only `--thermo-license` command displays the same embedded Thermo agreement without recording acceptance or creating the marker file.
 
+Release maintainers must retain Thermo's written redistribution authorization with their release records before publishing a release artifact.
+
 ## Requirements
 
 - Windows
 - .NET SDK 8.0 or later
-- Network access to download the Thermo RawFileReader NuGet packages on a clean checkout
+- PowerShell (the scripts in `scripts/` are PowerShell scripts) and Git
+- Network access on the first build, to download the Thermo RawFileReader NuGet packages
 
-`scripts/build.ps1` downloads any missing packages into the local feed before
-restoring. To download them without building, run:
+## Thermo RawFileReader packages
 
-```powershell
-.\scripts\get-thermo-packages.ps1
-```
+The Thermo NuGet packages are not stored in this repository. They are downloaded from
+Thermo's public GitHub repository (`thermofisherlsms/RawFileReader`) at a pinned commit
+into `third_party/Thermo.RawFileReader/packages/`, which `nuget.config` uses as a local
+feed. The repository, commit, and package paths are defined in
+`third_party/Thermo.RawFileReader/thermo-package-source.json`.
 
-Use `-Force` to replace existing package files. The package versions in
-`third_party/Thermo.RawFileReader/thermo-package-source.json` must match the
-versions in `src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj`.
+- `scripts/build.ps1` runs the download automatically. Packages that already exist in
+  the local feed are skipped, so a normal build needs no manual setup.
+- To download the packages without building, run: `.\scripts\get-thermo-packages.ps1`
+- Run `.\scripts\get-thermo-packages.ps1 -Force` to replace existing package files.
+- If you build with the .NET CLI directly (see below), run the download script first.
+  Otherwise `dotnet restore` cannot find the Thermo packages.
 
-The package feed expects these files:
+### Updating the Thermo version
 
-- `ThermoFisher.CommonCore.Data.8.0.37.nupkg`
-- `ThermoFisher.CommonCore.RawfileReader.8.0.37.nupkg`
-
-The parent `third_party/Thermo.RawFileReader/` directory contains the original Thermo license documents. Release maintainers must retain Thermo's written redistribution authorization with their release records before publishing a release artifact.
+1. In `thermo-package-source.json`, update the package paths (and the commit, if needed).
+2. In `src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj`, update the matching package versions. The versions in both files must agree, or restore fails.
+3. Run `.\scripts\get-thermo-packages.ps1` (or simply build). Old `.nupkg` files from the previous version can be deleted from the `packages/` folder.
 
 ## Build
 
@@ -53,10 +68,10 @@ From the repository root, run:
 .\scripts\build.ps1
 ```
 
-The script restores from `nuget.config` and publishes a self-contained,
-single-file `ThermoScanHeaderExtractor.exe` to `artifacts\publish\win-x64\`. It copies
-`LICENSE.txt`, `RawFileReaderLicense.txt`, and `RawFileReaderLicense.doc` to
-that output directory.
+The script downloads any missing Thermo packages, restores from `nuget.config`, and
+publishes a self-contained, single-file `ThermoScanHeaderExtractor.exe` to
+`artifacts\publish\win-x64\`. It copies `LICENSE.txt`, `RawFileReaderLicense.txt`, and
+`RawFileReaderLicense.doc` to that output directory.
 
 Useful options:
 
@@ -65,7 +80,7 @@ Useful options:
 .\scripts\build.ps1 -Runtime win-x64 -OutputDirectory .\artifacts\release
 ```
 
-To build directly with the .NET CLI:
+To build directly with the .NET CLI (after running `.\scripts\get-thermo-packages.ps1`):
 
 ```powershell
 dotnet restore .\src\ThermoScanHeaderExtractor\ThermoScanHeaderExtractor.csproj --configfile .\nuget.config --runtime win-x64
@@ -118,18 +133,21 @@ ThermoScanHeaderExtractor.exe sample.raw --tsv --msn -o .\reports
 
 ```text
 .
-├── LICENSE.txt                  # Draft ThermoScanHeaderExtractor proprietary license
-├── ThermoScanHeaderExtractor.sln # Standalone solution
-├── scripts/build.ps1            # Reproducible Windows publish script
-├── src/ThermoScanHeaderExtractor/ # Console application
-│   ├── LicenseAcceptance.cs
-│   ├── Program.cs
-│   ├── ThermoScanHeaderExtractor.csproj
-│   └── ScanHeaderExtractor.cs
+├── ThermoScanHeaderExtractor.sln        # Standalone solution
+├── nuget.config                         # NuGet sources, incl. the local Thermo packages folder
+├── LICENSE.txt                          # License file copied into the build output (does not yet exist)
+├── scripts/
+│   ├── get-thermo-packages.ps1          # Downloads the Thermo NuGet packages
+│   └── build.ps1                        # Reproducible Windows publish script
+├── src/ThermoScanHeaderExtractor/       # Console application
 ├── third_party/Thermo.RawFileReader/
-│   ├── packages/                # Thermo NuGet packages for local restore
-│   ├── RawFileReaderLicense.txt # Thermo license embedded into the executable
-│   └── RawFileReaderLicense.doc # Original Thermo license document
-├── nuget.config
+│   ├── thermo-package-source.json       # Pinned upstream repository, commit and package paths
+│   ├── packages/                        # Downloaded .nupkg files (git-ignored)
+│   ├── RawFileReaderLicense.txt         # Thermo license text
+│   └── RawFileReaderLicense.doc         # Original Thermo license document
+├── artifacts/publish/<runtime>/         # Build output (git-ignored, created by `build.ps1`)
 └── README.md
 ```
+
+The publish script also expects a root-level `LICENSE.txt`, which is not currently
+included in this checkout.
