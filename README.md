@@ -92,6 +92,7 @@ dotnet publish .\src\ThermoScanHeaderExtractor\ThermoScanHeaderExtractor.csproj 
 ```text
 ThermoScanHeaderExtractor.exe --agree-to-terms
 ThermoScanHeaderExtractor.exe --thermo-license
+ThermoScanHeaderExtractor.exe --version
 ThermoScanHeaderExtractor.exe <input.raw> [--tsv] [--high-precision] [--ms1] [--msn]
 							  [-o output-directory] [--name output-name]
 ThermoScanHeaderExtractor.exe help
@@ -102,6 +103,10 @@ Before extracting data from a new executable location, run `ThermoScanHeaderExtr
 To only display the Thermo agreement without accepting it, run
 `ThermoScanHeaderExtractor.exe --thermo-license`. This command never creates or changes
 `.thermo-license-accepted`.
+
+To display only the current version, run `ThermoScanHeaderExtractor.exe --version`.
+This command does not require license acceptance and prints a single version line, for
+example `0.1.0`.
 
 The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.micro` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`):
 
@@ -121,6 +126,7 @@ The default `low` precision mode stores `total_ion_current`, `base_peak_intensit
 Examples:
 
 ```powershell
+ThermoScanHeaderExtractor.exe --version
 ThermoScanHeaderExtractor.exe sample.raw
 ThermoScanHeaderExtractor.exe sample.raw -o .\reports
 ThermoScanHeaderExtractor.exe sample.raw -o .\reports --name report.raw

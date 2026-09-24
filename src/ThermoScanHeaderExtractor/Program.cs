@@ -12,6 +12,7 @@
  *   ThermoScanHeaderExtractor.exe input.raw --ms1
  *   ThermoScanHeaderExtractor.exe input.raw --msn
  *   ThermoScanHeaderExtractor.exe help
+ *   ThermoScanHeaderExtractor.exe --version
  *   ThermoScanHeaderExtractor.exe --agree-to-terms
  *   ThermoScanHeaderExtractor.exe --thermo-license
  */
@@ -35,6 +36,12 @@ namespace ThermoScanHeaderExtractor
             if (args.Length == 1 && IsHelpCommand(args[0]))
             {
                 PrintHelp();
+                return 0;
+            }
+
+            if (args.Length == 1 && args[0] == "--version")
+            {
+                Console.WriteLine(GetVersion());
                 return 0;
             }
 
@@ -166,6 +173,7 @@ namespace ThermoScanHeaderExtractor
             Console.WriteLine();
             Console.WriteLine("Commands:");
             Console.WriteLine("  help, --help, -h   Show this help and version.");
+            Console.WriteLine("  --version          Show only the current version.");
             Console.WriteLine("  --agree-to-terms   Read and explicitly accept the Thermo license terms.");
             Console.WriteLine("  --thermo-license   Display the Thermo license without accepting it.");
             Console.WriteLine();
