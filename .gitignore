@@ -1,0 +1,12 @@
+# .NET build output
+bin/
+obj/
+artifacts/
+.vs/
+
+# User-specific files
+*.user
+*.suo
+
+# Thermo packages are downloaded by scripts/get-thermo-packages.ps1.
+third_party/Thermo.RawFileReader/packages/
