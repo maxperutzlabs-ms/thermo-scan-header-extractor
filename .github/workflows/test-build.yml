@@ -1,0 +1,68 @@
+name: Test build
+
+on:
+  push:
+    paths:
+      - "src/ThermoScanHeaderExtractor/**/*.cs"
+      - "src/ThermoScanHeaderExtractor/**/*.csproj"
+      - "third_party/Thermo.RawFileReader/thermo-package-source.json"
+      - "scripts/build.ps1"
+      - "scripts/get-thermo-packages.ps1"
+      - "nuget.config"
+      - ".github/workflows/test-build.yml"
+  pull_request:
+    paths:
+      - "src/ThermoScanHeaderExtractor/**/*.cs"
+      - "src/ThermoScanHeaderExtractor/**/*.csproj"
+      - "third_party/Thermo.RawFileReader/thermo-package-source.json"
+      - "scripts/build.ps1"
+      - "scripts/get-thermo-packages.ps1"
+      - "nuget.config"
+      - ".github/workflows/test-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-build:
+    name: Build and smoke test
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build with build.ps1
+        shell: pwsh
+        run: ./scripts/build.ps1
+
+      - name: Smoke test published executable
+        shell: pwsh
+        run: |
+          $outputDirectory = "./artifacts/publish/win-x64"
+          $executable = Join-Path $outputDirectory "ThermoScanHeaderExtractor.exe"
+          if (-not (Test-Path $executable -PathType Leaf)) {
+            throw "Published executable was not found: $executable"
+          }
+
+          $versionOutput = @(& $executable --version)
+          if ($LASTEXITCODE -ne 0) {
+            throw "The executable's --version command failed with exit code $LASTEXITCODE."
+          }
+          if ($versionOutput.Count -ne 1 -or $versionOutput[0] -notmatch '^\d+\.\d+\.\d+$') {
+            throw "Expected --version to print one semantic version line; got: $($versionOutput -join ' | ')"
+          }
+
+          foreach ($fileName in @("LICENSE.txt", "RawFileReaderLicense.txt", "RawFileReaderLicense.doc")) {
+            if (-not (Test-Path (Join-Path $outputDirectory $fileName) -PathType Leaf)) {
+              throw "Expected license file was not copied to the publish directory: $fileName"
+            }
+          }
+
+          Write-Host "Published executable smoke tests passed for version $($versionOutput[0])."
