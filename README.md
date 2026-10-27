@@ -26,7 +26,7 @@ ThermoScanHeaderExtractor is licensed under the Apache License 2.0. It depends o
 - **Non-commercial use:** Thermo's terms prohibit commercial exploitation without Thermo's prior written consent.
 - **Attribution:** `RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.`
 
-The `--agree-to-terms` command displays the embedded Thermo agreement and records acceptance when the user explicitly invokes that command. No typed confirmation is required. It creates a `.thermo-license-accepted` configuration file beside the executable.
+The `--agree-to-terms` command displays the embedded Thermo agreement and records acceptance when the user explicitly invokes that command. No typed confirmation is required. Acceptance is recorded per user in a `.thermo-license-accepted` file in the user's configuration directory (see [CLI usage](#cli-usage)).
 
 The read-only `--thermo-license` command displays the same embedded Thermo agreement without recording acceptance or creating the marker file.
 
@@ -95,7 +95,13 @@ ThermoScanHeaderExtractor <input.raw> [--tsv] [--high-precision] [--ms1] [--msn]
 ThermoScanHeaderExtractor help
 ```
 
-Before extracting data from a new application location, run `ThermoScanHeaderExtractor --agree-to-terms` and read the displayed Thermo agreement. Invoking this explicit command records acceptance in `.thermo-license-accepted` beside the application. No typed confirmation is required. Without that file, extraction exits with an explanation of the requirement.
+Before extracting data for the first time, run `ThermoScanHeaderExtractor --agree-to-terms` and read the displayed Thermo agreement. Invoking this explicit command records acceptance for the current user in a `.thermo-license-accepted` file. No typed confirmation is required. Without that file, extraction exits with an explanation of the requirement. Acceptance is per user, so it survives tool updates and reinstalls, and every user account (including service accounts or containers that invoke the tool) must accept once. Missing directories are created automatically. The file is stored in the user's configuration directory, following the layout of Python's `platformdirs`:
+
+| OS | Location |
+|---|---|
+| Windows | `%LOCALAPPDATA%\perutzms\ThermoScanHeaderExtractor\.thermo-license-accepted` |
+| macOS | `~/Library/Application Support/ThermoScanHeaderExtractor/.thermo-license-accepted` |
+| Linux | `$XDG_CONFIG_HOME/ThermoScanHeaderExtractor/.thermo-license-accepted` (default `~/.config/...`) |
 
 To only display the Thermo agreement without accepting it, run `ThermoScanHeaderExtractor --thermo-license`. This command never creates or changes `.thermo-license-accepted`.
 

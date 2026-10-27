@@ -82,8 +82,20 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "The executable could not record acceptance of the Thermo terms (exit code $LASTEXITCODE)."
           }
-          if (-not (Test-Path (Join-Path $outputDirectory ".thermo-license-accepted") -PathType Leaf)) {
-            throw "The Thermo license acceptance marker was not created beside the published application."
+          $configDirectory = switch ($env:RUNNER_OS) {
+            "Windows" { Join-Path $env:LOCALAPPDATA "perutzms/ThermoScanHeaderExtractor" }
+            "macOS" { Join-Path $HOME "Library/Application Support/ThermoScanHeaderExtractor" }
+            default {
+              $xdgConfigHome = if ($env:XDG_CONFIG_HOME) { $env:XDG_CONFIG_HOME } else { Join-Path $HOME ".config" }
+              Join-Path $xdgConfigHome "ThermoScanHeaderExtractor"
+            }
+          }
+          $marker = Join-Path $configDirectory ".thermo-license-accepted"
+          if (-not (Test-Path $marker -PathType Leaf)) {
+            throw "The Thermo license acceptance marker was not created in the per-user configuration directory: $marker"
+          }
+          if (Test-Path (Join-Path $outputDirectory ".thermo-license-accepted")) {
+            throw "A license acceptance marker was unexpectedly created beside the published application."
           }
           foreach ($fileName in @("LICENSE.txt", "RawFileReaderLicense.txt", "RawFileReaderLicense.doc")) {
             if (-not (Test-Path (Join-Path $outputDirectory $fileName) -PathType Leaf)) {
