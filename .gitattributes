@@ -1,0 +1,4 @@
+# Binary files must never be modified by line-ending conversion.
+*.raw binary
+*.doc binary
+*.nupkg binary

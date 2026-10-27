@@ -88,16 +88,14 @@ internal static class LicenseAcceptance
     internal static void PrintAcceptanceRequired()
     {
         Console.Error.WriteLine("ERROR: Thermo RawFileReader license terms have not been accepted for this installation.");
-        Console.Error.WriteLine("Before extracting data, run: ThermoScanHeaderExtractor.exe --agree-to-terms");
+        Console.Error.WriteLine("Before extracting data, run: ThermoScanHeaderExtractor --agree-to-terms");
         Console.Error.WriteLine("The Thermo terms prohibit end users from redistributing this software to others.");
         Console.Error.WriteLine("The license is also distributed as RawFileReaderLicense.txt beside the executable.");
     }
 
     private static string GetMarkerPath()
     {
-        string executableDirectory = Path.GetDirectoryName(Environment.ProcessPath ?? string.Empty)
-            ?? AppContext.BaseDirectory;
-        return Path.Combine(executableDirectory, MarkerFileName);
+        return Path.Combine(AppContext.BaseDirectory, MarkerFileName);
     }
 
     private static string GetLicenseText()

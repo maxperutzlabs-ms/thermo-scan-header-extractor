@@ -1,6 +1,6 @@
 # ThermoScanHeaderExtractor
 
-ThermoScanHeaderExtractor is a Windows command-line tool that extracts compact scan-header metadata from Thermo `.raw` files. It writes Snappy-compressed Parquet scan-table files by default, so it can be invoked by external applications or used directly from a command prompt. An optional `--tsv` flag retains a combined tab-separated diagnostic output mode.
+ThermoScanHeaderExtractor is a cross-platform command-line tool that extracts compact scan-header metadata from Thermo `.raw` files on Windows, Linux, and macOS. It writes Snappy-compressed Parquet scan-table files by default, so it can be invoked by external applications or used directly from a command prompt. An optional `--tsv` flag writes the same files as tab-separated text for diagnostics.
 
 > [!WARNING]
 > **Proprietary license notice:** ThermoScanHeaderExtractor includes proprietary Thermo
@@ -34,79 +34,72 @@ Release maintainers must retain Thermo's written redistribution authorization wi
 
 ## Requirements
 
-- Windows
-- .NET SDK 8.0 or later
-- PowerShell (the scripts in `scripts/` are PowerShell scripts) and Git
+- Windows, Linux, or macOS (x64 and arm64)
+- .NET SDK 8.0 and PowerShell 7 or later to build from source
 - Network access on the first build, to download the Thermo RawFileReader NuGet packages
+
+The build produces a self-contained executable, so end users do not need to install .NET. If you build or run the framework-dependent DLL directly, install the .NET 8 runtime on the target machine. Linux hosts must also have the native libraries required by .NET 8 (including glibc, ICU, OpenSSL, and zlib; exact package names vary by distribution). For macOS, use a .NET 8-supported version (macOS 14 or later) and a matching x64/arm64 build. Mono and Thermo's legacy MSFileReader are not required.
 
 ## Thermo RawFileReader packages
 
-The Thermo NuGet packages are not stored in this repository. They are downloaded from
-Thermo's public GitHub repository (`thermofisherlsms/RawFileReader`) at a pinned commit
-into `third_party/Thermo.RawFileReader/packages/`, which `nuget.config` uses as a local
-feed. The repository, commit, and package paths are defined in
-`third_party/Thermo.RawFileReader/thermo-package-source.json`.
+The Thermo NuGet packages are not stored in this repository. They are downloaded from Thermo's public GitHub repository (`thermofisherlsms/RawFileReader`) at a pinned commit into `third_party/Thermo.RawFileReader/packages/`, which `nuget.config` uses as a local feed. The repository, commit, and package paths are defined in `third_party/Thermo.RawFileReader/thermo-package-source.json`.
 
-- `scripts/build.ps1` runs the download automatically. Packages that already exist in
-  the local feed are skipped, so a normal build needs no manual setup.
-- To download the packages without building, run: `.\scripts\get-thermo-packages.ps1`
-- Run `.\scripts\get-thermo-packages.ps1 -Force` to replace existing package files.
-- If you build with the .NET CLI directly (see below), run the download script first.
-  Otherwise `dotnet restore` cannot find the Thermo packages.
+- `scripts/build.ps1` runs the download automatically. Packages that already exist in the local feed are skipped, so a normal build needs no manual setup.
+- To download the packages without building, run: `pwsh ./scripts/get-thermo-packages.ps1`
+- Run `pwsh ./scripts/get-thermo-packages.ps1 -Force` to replace existing package files.
+- If you build with the .NET CLI directly (see [Build](#build)), run the download script first. Otherwise `dotnet restore` cannot find the Thermo packages.
 
 ### Updating the Thermo version
 
 1. In `thermo-package-source.json`, update the package paths (and the commit, if needed).
 2. In `src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj`, update the matching package versions. The versions in both files must agree, or restore fails.
-3. Run `.\scripts\get-thermo-packages.ps1` (or simply build). Old `.nupkg` files from the previous version can be deleted from the `packages/` folder.
+3. Run `pwsh ./scripts/get-thermo-packages.ps1` (or simply build). Old `.nupkg` files from the previous version can be deleted from the `packages/` folder.
 
 ## Build
 
-From the repository root, run:
+From the repository root, run the following with PowerShell 7:
 
-```powershell
-.\scripts\build.ps1
+```sh
+pwsh ./scripts/build.ps1
 ```
 
-The script downloads any missing Thermo packages, restores from `nuget.config`, and
-publishes a self-contained, single-file `ThermoScanHeaderExtractor.exe` to
-`artifacts\publish\win-x64\`. It copies `LICENSE.txt`, `RawFileReaderLicense.txt`, and
-`RawFileReaderLicense.doc` to that output directory.
+The script downloads any missing Thermo packages, restores from `nuget.config`, and publishes a self-contained, single-file executable for the current OS and architecture to `artifacts/publish/<runtime-id>/`. Windows uses `artifacts/publish/win-x64/ThermoScanHeaderExtractor.exe`; Linux and macOS use the extensionless `ThermoScanHeaderExtractor` apphost. It copies `LICENSE.txt`, `RawFileReaderLicense.txt`, and `RawFileReaderLicense.doc` to that output directory.
 
 Useful options:
 
-```powershell
-.\scripts\build.ps1 -Configuration Debug
-.\scripts\build.ps1 -Runtime win-x64 -OutputDirectory .\artifacts\release
+```sh
+pwsh ./scripts/build.ps1 -Configuration Debug
+pwsh ./scripts/build.ps1 -Runtime linux-x64 -OutputDirectory ./artifacts/release
+pwsh ./scripts/build.ps1 -Runtime linux-arm64
 ```
 
-To build directly with the .NET CLI (after running `.\scripts\get-thermo-packages.ps1`):
+Supported runtime IDs are `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, and `osx-arm64`. A cross-published executable must be run on a matching OS and architecture. Windows and Linux runtimes can be built on any OS, but `osx-*` runtimes must be built on macOS, because only a macOS build host code-signs the executable and Apple Silicon Macs refuse to launch unsigned executables. The script stops with an error if an `osx-*` runtime is requested on another OS.
 
-```powershell
-dotnet restore .\src\ThermoScanHeaderExtractor\ThermoScanHeaderExtractor.csproj --configfile .\nuget.config --runtime win-x64
-dotnet publish .\src\ThermoScanHeaderExtractor\ThermoScanHeaderExtractor.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o .\artifacts\publish\win-x64
+To build with the .NET CLI directly, run `pwsh ./scripts/get-thermo-packages.ps1` first, then replace `<runtime-id>` with one of the IDs above:
+
+```sh
+dotnet restore ./src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj --configfile ./nuget.config --runtime <runtime-id>
+dotnet publish ./src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj -c Release -r <runtime-id> --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./artifacts/publish/<runtime-id>
 ```
 
 ## CLI usage
 
+On Windows, invoke `ThermoScanHeaderExtractor.exe`; on Linux and macOS, invoke `./ThermoScanHeaderExtractor`. The commands below use the platform-neutral command name:
+
 ```text
-ThermoScanHeaderExtractor.exe --agree-to-terms
-ThermoScanHeaderExtractor.exe --thermo-license
-ThermoScanHeaderExtractor.exe --version
-ThermoScanHeaderExtractor.exe <input.raw> [--tsv] [--high-precision] [--ms1] [--msn]
-							  [-o output-directory] [--name output-name]
-ThermoScanHeaderExtractor.exe help
+ThermoScanHeaderExtractor --agree-to-terms
+ThermoScanHeaderExtractor --thermo-license
+ThermoScanHeaderExtractor --version
+ThermoScanHeaderExtractor <input.raw> [--tsv] [--high-precision] [--ms1] [--msn]
+                         [-o output-directory] [--name output-name]
+ThermoScanHeaderExtractor help
 ```
 
-Before extracting data from a new executable location, run `ThermoScanHeaderExtractor.exe --agree-to-terms` and read the displayed Thermo agreement. Invoking this explicit command records acceptance in `.thermo-license-accepted` beside the executable. No typed confirmation is required. Without that file, extraction exits with an explanation of the requirement.
+Before extracting data from a new application location, run `ThermoScanHeaderExtractor --agree-to-terms` and read the displayed Thermo agreement. Invoking this explicit command records acceptance in `.thermo-license-accepted` beside the application. No typed confirmation is required. Without that file, extraction exits with an explanation of the requirement.
 
-To only display the Thermo agreement without accepting it, run
-`ThermoScanHeaderExtractor.exe --thermo-license`. This command never creates or changes
-`.thermo-license-accepted`.
+To only display the Thermo agreement without accepting it, run `ThermoScanHeaderExtractor --thermo-license`. This command never creates or changes `.thermo-license-accepted`.
 
-To display only the current version, run `ThermoScanHeaderExtractor.exe --version`.
-This command does not require license acceptance and prints a single version line, for
-example `0.1.0`.
+To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.1.0`.
 
 The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.micro` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`):
 
@@ -126,13 +119,13 @@ The default `low` precision mode stores `total_ion_current`, `base_peak_intensit
 Examples:
 
 ```powershell
-ThermoScanHeaderExtractor.exe --version
-ThermoScanHeaderExtractor.exe sample.raw
-ThermoScanHeaderExtractor.exe sample.raw -o .\reports
-ThermoScanHeaderExtractor.exe sample.raw -o .\reports --name report.raw
-ThermoScanHeaderExtractor.exe sample.raw --high-precision -o .\reports
-ThermoScanHeaderExtractor.exe sample.raw --ms1 -o .\reports
-ThermoScanHeaderExtractor.exe sample.raw --tsv --msn -o .\reports
+ThermoScanHeaderExtractor --version
+ThermoScanHeaderExtractor sample.raw
+ThermoScanHeaderExtractor sample.raw -o ./reports
+ThermoScanHeaderExtractor sample.raw -o ./reports --name report.raw
+ThermoScanHeaderExtractor sample.raw --high-precision -o ./reports
+ThermoScanHeaderExtractor sample.raw --ms1 -o ./reports
+ThermoScanHeaderExtractor sample.raw --tsv --msn -o ./reports
 ```
 
 ## Repository layout
@@ -142,10 +135,12 @@ ThermoScanHeaderExtractor.exe sample.raw --tsv --msn -o .\reports
 ├── ThermoScanHeaderExtractor.sln        # Standalone solution
 ├── nuget.config                         # NuGet sources, incl. the local Thermo packages folder
 ├── LICENSE.txt                          # License file copied into the build output
+├── .github/workflows/                   # CI (build + sample extraction per runtime) and release builds
 ├── scripts/
 │   ├── get-thermo-packages.ps1          # Downloads the Thermo NuGet packages
-│   └── build.ps1                        # Reproducible Windows publish script
+│   └── build.ps1                        # Cross-platform publish script (PowerShell 7)
 ├── src/ThermoScanHeaderExtractor/       # Console application
+├── tests/data/thermo/                   # Small Thermo RAW fixture used by CI
 ├── third_party/Thermo.RawFileReader/
 │   ├── thermo-package-source.json       # Pinned upstream repository, commit and package paths
 │   ├── packages/                        # Downloaded .nupkg files (git-ignored)

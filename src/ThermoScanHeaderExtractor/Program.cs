@@ -1,20 +1,20 @@
 /*
  * Program.cs
  * ==========
- * Entry point for ThermoScanHeaderExtractor.exe.
+ * Entry point for ThermoScanHeaderExtractor.
  * Parses command-line arguments and delegates to ScanHeaderExtractor.Extract().
  *
  * Usage:
- *   ThermoScanHeaderExtractor.exe input.raw
- *   ThermoScanHeaderExtractor.exe input.raw -o output-directory --name output-name
- *   ThermoScanHeaderExtractor.exe input.raw --high-precision
- *   ThermoScanHeaderExtractor.exe input.raw --tsv
- *   ThermoScanHeaderExtractor.exe input.raw --ms1
- *   ThermoScanHeaderExtractor.exe input.raw --msn
- *   ThermoScanHeaderExtractor.exe help
- *   ThermoScanHeaderExtractor.exe --version
- *   ThermoScanHeaderExtractor.exe --agree-to-terms
- *   ThermoScanHeaderExtractor.exe --thermo-license
+ *   ThermoScanHeaderExtractor input.raw
+ *   ThermoScanHeaderExtractor input.raw -o output-directory --name output-name
+ *   ThermoScanHeaderExtractor input.raw --high-precision
+ *   ThermoScanHeaderExtractor input.raw --tsv
+ *   ThermoScanHeaderExtractor input.raw --ms1
+ *   ThermoScanHeaderExtractor input.raw --msn
+ *   ThermoScanHeaderExtractor help
+ *   ThermoScanHeaderExtractor --version
+ *   ThermoScanHeaderExtractor --agree-to-terms
+ *   ThermoScanHeaderExtractor --thermo-license
  */
 
 using System;

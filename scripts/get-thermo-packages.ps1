@@ -10,11 +10,11 @@ $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 
 $configFile = Join-Path `
     $repositoryRoot `
-    "third_party\Thermo.RawFileReader\thermo-package-source.json"
+    "third_party/Thermo.RawFileReader/thermo-package-source.json"
 
 $packagesDirectory = Join-Path `
     $repositoryRoot `
-    "third_party\Thermo.RawFileReader\packages"
+    "third_party/Thermo.RawFileReader/packages"
 
 if (-not (Test-Path $configFile -PathType Leaf)) {
     throw "Thermo package configuration not found: $configFile"

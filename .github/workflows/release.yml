@@ -9,8 +9,21 @@ permissions:
 
 jobs:
   build-and-upload:
-    name: Build and upload release archive
-    runs-on: windows-latest
+    name: Build and upload release archive (${{ matrix.runtime }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Each runtime is built on its own OS: macOS executables are only
+        # code-signed when published on macOS, and tar archives built on
+        # Linux/macOS keep the executable permission bit.
+        include:
+          - { os: windows-latest, runtime: win-x64, executable: ThermoScanHeaderExtractor.exe }
+          - { os: windows-11-arm, runtime: win-arm64, executable: ThermoScanHeaderExtractor.exe }
+          - { os: ubuntu-latest, runtime: linux-x64, executable: ThermoScanHeaderExtractor }
+          - { os: ubuntu-24.04-arm, runtime: linux-arm64, executable: ThermoScanHeaderExtractor }
+          - { os: macos-15-intel, runtime: osx-x64, executable: ThermoScanHeaderExtractor }
+          - { os: macos-latest, runtime: osx-arm64, executable: ThermoScanHeaderExtractor }
 
     steps:
       - name: Check out release tag
@@ -23,33 +36,45 @@ jobs:
 
       - name: Build release executable
         shell: pwsh
-        run: ./scripts/build.ps1
+        run: ./scripts/build.ps1 -Runtime ${{ matrix.runtime }}
 
       - name: Package and upload release archive
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RUNTIME: ${{ matrix.runtime }}
+          EXECUTABLE: ${{ matrix.executable }}
         run: |
-          $publishDirectory = "./artifacts/publish/win-x64"
+          $ErrorActionPreference = "Stop"
+          $publishDirectory = "./artifacts/publish/$env:RUNTIME"
           $fileNames = @(
-            "ThermoScanHeaderExtractor.exe",
+            $env:EXECUTABLE,
             "ThermoScanHeaderExtractor.pdb",
             "LICENSE.txt",
             "RawFileReaderLicense.txt",
             "RawFileReaderLicense.doc"
           )
 
-          $files = foreach ($fileName in $fileNames) {
+          foreach ($fileName in $fileNames) {
             $filePath = Join-Path $publishDirectory $fileName
             if (-not (Test-Path $filePath -PathType Leaf)) {
               throw "Expected release file was not produced: $filePath"
             }
-            $filePath
           }
 
           $safeTag = $env:RELEASE_TAG -replace '[^A-Za-z0-9._-]', '-'
-          $archivePath = Join-Path $env:GITHUB_WORKSPACE "ThermoScanHeaderExtractor-$safeTag-win-x64.zip"
-          Compress-Archive -Path $files -DestinationPath $archivePath -Force
+          $archiveBaseName = "ThermoScanHeaderExtractor-$safeTag-$env:RUNTIME"
+          if ($env:RUNTIME.StartsWith("win-")) {
+            $archivePath = Join-Path $env:GITHUB_WORKSPACE "$archiveBaseName.zip"
+            Compress-Archive -Path ($fileNames | ForEach-Object { Join-Path $publishDirectory $_ }) -DestinationPath $archivePath -Force
+          }
+          else {
+            $archivePath = Join-Path $env:GITHUB_WORKSPACE "$archiveBaseName.tar.gz"
+            & tar -czf $archivePath -C $publishDirectory @fileNames
+            if ($LASTEXITCODE -ne 0) {
+              throw "tar failed with exit code $LASTEXITCODE."
+            }
+          }
 
           gh release upload $env:RELEASE_TAG $archivePath --clobber

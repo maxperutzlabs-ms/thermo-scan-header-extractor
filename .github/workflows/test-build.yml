@@ -8,6 +8,7 @@ on:
       - "third_party/Thermo.RawFileReader/thermo-package-source.json"
       - "scripts/build.ps1"
       - "scripts/get-thermo-packages.ps1"
+      - "tests/data/thermo/**"
       - "nuget.config"
       - ".github/workflows/test-build.yml"
   pull_request:
@@ -17,6 +18,7 @@ on:
       - "third_party/Thermo.RawFileReader/thermo-package-source.json"
       - "scripts/build.ps1"
       - "scripts/get-thermo-packages.ps1"
+      - "tests/data/thermo/**"
       - "nuget.config"
       - ".github/workflows/test-build.yml"
   workflow_dispatch:
@@ -26,8 +28,18 @@ permissions:
 
 jobs:
   test-build:
-    name: Build and smoke test
-    runs-on: windows-latest
+    name: Build and extract sample (${{ matrix.runtime }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, runtime: win-x64, executable: ThermoScanHeaderExtractor.exe }
+          - { os: windows-11-arm, runtime: win-arm64, executable: ThermoScanHeaderExtractor.exe }
+          - { os: ubuntu-latest, runtime: linux-x64, executable: ThermoScanHeaderExtractor }
+          - { os: ubuntu-24.04-arm, runtime: linux-arm64, executable: ThermoScanHeaderExtractor }
+          - { os: macos-15-intel, runtime: osx-x64, executable: ThermoScanHeaderExtractor }
+          - { os: macos-latest, runtime: osx-arm64, executable: ThermoScanHeaderExtractor }
 
     steps:
       - name: Check out repository
@@ -40,15 +52,21 @@ jobs:
 
       - name: Build with build.ps1
         shell: pwsh
-        run: ./scripts/build.ps1
+        run: ./scripts/build.ps1 -Runtime ${{ matrix.runtime }} -OutputDirectory ./artifacts/ci
 
-      - name: Smoke test published executable
+      - name: Extract and validate sample RAW file
         shell: pwsh
         run: |
-          $outputDirectory = "./artifacts/publish/win-x64"
-          $executable = Join-Path $outputDirectory "ThermoScanHeaderExtractor.exe"
+          $ErrorActionPreference = "Stop"
+          $outputDirectory = "./artifacts/ci"
+          $executable = Join-Path $outputDirectory "${{ matrix.executable }}"
           if (-not (Test-Path $executable -PathType Leaf)) {
             throw "Published executable was not found: $executable"
+          }
+
+          $fixture = "./tests/data/thermo/exploris480_ms1_dia_3cycles.raw"
+          if (-not (Test-Path $fixture -PathType Leaf)) {
+            throw "The Thermo sample fixture is missing: $fixture"
           }
 
           $versionOutput = @(& $executable --version)
@@ -59,10 +77,51 @@ jobs:
             throw "Expected --version to print one semantic version line; got: $($versionOutput -join ' | ')"
           }
 
+          # Only the printed license text is suppressed; extraction output stays in the log.
+          $null = & $executable --agree-to-terms
+          if ($LASTEXITCODE -ne 0) {
+            throw "The executable could not record acceptance of the Thermo terms (exit code $LASTEXITCODE)."
+          }
+          if (-not (Test-Path (Join-Path $outputDirectory ".thermo-license-accepted") -PathType Leaf)) {
+            throw "The Thermo license acceptance marker was not created beside the published application."
+          }
           foreach ($fileName in @("LICENSE.txt", "RawFileReaderLicense.txt", "RawFileReaderLicense.doc")) {
             if (-not (Test-Path (Join-Path $outputDirectory $fileName) -PathType Leaf)) {
               throw "Expected license file was not copied to the publish directory: $fileName"
             }
           }
 
-          Write-Host "Published executable smoke tests passed for version $($versionOutput[0])."
+          $testRoot = Join-Path $env:RUNNER_TEMP "thermoscan-cross-platform"
+          $parquetDirectory = Join-Path $testRoot "parquet"
+          $tsvDirectory = Join-Path $testRoot "tsv"
+          New-Item -ItemType Directory -Force -Path $parquetDirectory, $tsvDirectory | Out-Null
+
+          & $executable $fixture --name sample -o $parquetDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "Parquet extraction failed with exit code $LASTEXITCODE."
+          }
+          foreach ($fileName in @("sample.ms1-trace.parquet", "sample.msn-trace.parquet")) {
+            $outputFile = Join-Path $parquetDirectory $fileName
+            if (-not (Test-Path $outputFile -PathType Leaf) -or (Get-Item $outputFile).Length -eq 0) {
+              throw "Expected non-empty Parquet output was not produced: $outputFile"
+            }
+          }
+
+          & $executable $fixture --name sample --tsv -o $tsvDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "TSV extraction failed with exit code $LASTEXITCODE."
+          }
+          $ms1Lines = @(Get-Content (Join-Path $tsvDirectory "sample.ms1-trace.tsv"))
+          $msnLines = @(Get-Content (Join-Path $tsvDirectory "sample.msn-trace.tsv"))
+          $ms1ScanIds = @($ms1Lines | Select-Object -Skip 1 | ForEach-Object { [int](($_ -split "`t")[0]) })
+          $msnScanIds = @($msnLines | Select-Object -Skip 1 | ForEach-Object { [int](($_ -split "`t")[0]) })
+          $expectedMsnScanIds = @(2..13) + @(15..26) + @(28..39)
+          if (($ms1ScanIds -join ",") -ne "1,14,27") {
+            throw "Expected MS1 scan IDs 1,14,27; got: $($ms1ScanIds -join ',')"
+          }
+          $invalidMsnRows = @($msnLines | Select-Object -Skip 1 | Where-Object { ($_ -split "`t")[4] -ne "2" })
+          if (($msnScanIds -join ",") -ne ($expectedMsnScanIds -join ",") -or $invalidMsnRows.Count -ne 0) {
+            throw "Expected MS2 scan IDs 2-13, 15-26, and 28-39; got: $($msnScanIds -join ',')"
+          }
+
+          Write-Host "Published ${{ matrix.runtime }} executable extracted the sample successfully: 3 MS1 and 36 MS2 scans."
