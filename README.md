@@ -104,7 +104,7 @@ Before extracting data for the first time, run `ThermoScanHeaderExtractor --agre
 
 To only display the Thermo agreement without accepting it, run `ThermoScanHeaderExtractor --thermo-license`. This command never creates or changes `.thermo-license-accepted`.
 
-To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.1.0`.
+To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.2.0`.
 
 The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.micro` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`):
 
