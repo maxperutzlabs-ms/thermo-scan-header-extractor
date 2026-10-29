@@ -1,16 +1,89 @@
 name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  validate:
+    name: Validate tag, project version and changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+
+      - name: Check that the tag matches the project version and changelog
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          project_version=$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj)
+          if [ "$project_version" != "$version" ]; then
+            echo "::error::Tag $TAG does not match the project version $project_version."
+            exit 1
+          fi
+
+          # The newest changelog entry must belong to this release.
+          latest_entry=$(grep -m 1 '^## ' CHANGELOG.md)
+          case "$latest_entry" in
+            "## [$version]"*) ;;
+            *)
+              echo "::error::The newest CHANGELOG.md entry is '$latest_entry', expected '## [$version]'."
+              exit 1
+              ;;
+          esac
+
+  create-release:
+    name: Create draft release
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@v4
+
+      - name: Extract release changelog entry
+        run: |
+          # 1. Print the lines between the first and the second '## ' heading
+          # 2. Remove horizontal rules and trailing newlines
+          awk '/^## /{count++} count==1 && !/^## /{print} count==2{exit}' CHANGELOG.md \
+          | sed '/^---/d' \
+          | perl -0777 -pe 's/\A\n+//; s/\n+\z/\n/' > body.txt
+
+          {
+            echo "## Changelog"
+            echo
+            cat body.txt
+            echo
+            echo "## Thermo RawFileReader license"
+            echo
+            echo "The archives include proprietary Thermo RawFileReader components and must not be redistributed."
+            echo "Before the first extraction, run \`ThermoScanHeaderExtractor --agree-to-terms\` to accept the Thermo license terms."
+          } > release-notes.md
+
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        # The release stays a draft until all archives are uploaded.
+        run: |
+          gh release create "$TAG" \
+            --draft \
+            --verify-tag \
+            --title "ThermoScanHeaderExtractor $TAG" \
+            --notes-file release-notes.md
+
   build-and-upload:
     name: Build and upload release archive (${{ matrix.runtime }})
+    needs: create-release
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +115,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.ref_name }}
           RUNTIME: ${{ matrix.runtime }}
           EXECUTABLE: ${{ matrix.executable }}
         run: |
@@ -78,3 +151,19 @@ jobs:
           }
 
           gh release upload $env:RELEASE_TAG $archivePath --clobber
+          if ($LASTEXITCODE -ne 0) {
+            throw "gh release upload failed with exit code $LASTEXITCODE."
+          }
+
+  publish-release:
+    name: Publish release
+    needs: build-and-upload
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release edit "$TAG" --draft=false --repo "$GITHUB_REPOSITORY"
