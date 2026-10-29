@@ -49,7 +49,10 @@ namespace ThermoScanHeaderExtractor
         /// <param name="selectMs1">Whether MS1 was explicitly selected.</param>
         /// <param name="selectMsn">Whether MSn was explicitly selected.</param>
         /// <param name="version">Generator version for Parquet metadata.</param>
-        /// <returns>Exit code: 0 = success, 2 = file not found, 3 = cannot open.</returns>
+        /// <returns>
+        ///   Exit code: 0 = success, 1 = explicitly selected MS level absent,
+        ///   2 = file not found, 3 = cannot open.
+        /// </returns>
         public static async Task<int> ExtractAsync(
             string inputFile,
             string? outputDirectory,

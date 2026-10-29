@@ -3,11 +3,10 @@
 ThermoScanHeaderExtractor is a cross-platform command-line tool that extracts compact scan-header metadata from Thermo `.raw` files on Windows, Linux, and macOS. It writes Snappy-compressed Parquet scan-table files by default, so it can be invoked by external applications or used directly from a command prompt. An optional `--tsv` flag writes the same files as tab-separated text for diagnostics.
 
 > [!WARNING]
-> **Proprietary license notice:** ThermoScanHeaderExtractor includes proprietary Thermo
-> RawFileReader components. This repository and its release artifacts are not
-> open-source. End users must not redistribute the executable, bundled
-> dependencies, or release archives. Do not publish a release until the Thermo
-> redistribution authorization and applicable legal review are in place.
+> **Proprietary license notice:** Built executables and release archives of
+> ThermoScanHeaderExtractor include proprietary Thermo RawFileReader components.
+> End users must not redistribute the executable, bundled dependencies, or release
+> archives.
 
 ## Overview
 
@@ -133,6 +132,19 @@ ThermoScanHeaderExtractor sample.raw --high-precision -o ./reports
 ThermoScanHeaderExtractor sample.raw --ms1 -o ./reports
 ThermoScanHeaderExtractor sample.raw --tsv --msn -o ./reports
 ```
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | Invalid usage (missing input, unknown option or argument, missing value for `-o` or `--name`, invalid `--name`), or the level requested with `--ms1` or `--msn` is absent from the input |
+| `2` | Input file not found |
+| `3` | Input file could not be opened as a Thermo RAW file |
+| `4` | Thermo license terms have not been accepted; run `ThermoScanHeaderExtractor --agree-to-terms` |
+| `5` | License handling failed: the configuration directory could not be determined, the acceptance file could not be written, or the embedded agreement could not be loaded |
+
+Error messages are written to standard error.
 
 ## Repository layout
 
