@@ -36,7 +36,8 @@ namespace ThermoScanHeaderExtractor
         /// <summary>
         /// Extract scan-level statistics from <paramref name="inputFile"/> and
         /// write them as Parquet or TSV using the scan-table specification's
-        /// MS1/MSn sibling-file convention.
+        /// MS1/MSn sibling-file convention. A file is only written for a
+        /// requested level that has at least one scan.
         /// </summary>
         /// <param name="inputFile">Path to the Thermo .raw file.</param>
         /// <param name="outputDirectory">
@@ -50,8 +51,8 @@ namespace ThermoScanHeaderExtractor
         /// <param name="selectMsn">Whether MSn was explicitly selected.</param>
         /// <param name="version">Generator version for Parquet metadata.</param>
         /// <returns>
-        ///   Exit code: 0 = success, 1 = explicitly selected MS level absent,
-        ///   2 = file not found, 3 = cannot open.
+        ///   Exit code: 0 = success, 2 = file not found, 3 = cannot open,
+        ///   8 = none of the requested levels has scans (nothing written).
         /// </returns>
         public static async Task<int> ExtractAsync(
             string inputFile,
@@ -149,20 +150,18 @@ namespace ThermoScanHeaderExtractor
                     msnRows.Add(row);
             }
 
+            // A file is only written for a requested level that has scans; no zero-row files.
             bool selectAllLevels = selectMs1 == selectMsn;
-            bool writeMs1 = selectAllLevels || selectMs1;
-            bool writeMsn = selectAllLevels || selectMsn;
+            bool requestMs1 = selectAllLevels || selectMs1;
+            bool requestMsn = selectAllLevels || selectMsn;
+            bool writeMs1 = requestMs1 && ms1Rows.Count > 0;
+            bool writeMsn = requestMsn && msnRows.Count > 0;
 
-            if (!selectAllLevels && writeMs1 && ms1Rows.Count == 0)
+            if (!writeMs1 && !writeMsn)
             {
-                Console.Error.WriteLine("ERROR: The input file contains no MS1 scans.");
-                return 1;
-            }
-
-            if (!selectAllLevels && writeMsn && msnRows.Count == 0)
-            {
-                Console.Error.WriteLine("ERROR: The input file contains no MSn scans.");
-                return 1;
+                string requestedLevels = selectAllLevels ? "MS1 or MSn" : selectMs1 ? "MS1" : "MSn";
+                Console.Error.WriteLine($"ERROR: The input file contains no {requestedLevels} scans. No files were written.");
+                return 8;
             }
 
             if (tsvOutput)
@@ -203,7 +202,7 @@ namespace ThermoScanHeaderExtractor
                     ms1Rows,
                     Path.Combine(destinationDirectory, fileStem + ".ms1-trace.tsv"),
                     includeFaimsCv);
-            if (writeMsn && msnRows.Count > 0)
+            if (writeMsn)
                 WriteTsvFile(
                     msnRows,
                     Path.Combine(destinationDirectory, fileStem + ".msn-trace.tsv"),
@@ -272,7 +271,7 @@ namespace ThermoScanHeaderExtractor
                     version);
             }
 
-            if (writeMsn && msnRows.Count > 0)
+            if (writeMsn)
             {
                 await WriteParquetFileAsync(
                     msnRows,

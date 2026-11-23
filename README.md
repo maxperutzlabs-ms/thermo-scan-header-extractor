@@ -106,7 +106,7 @@ To only display the Thermo agreement without accepting it, run `ThermoScanHeader
 
 To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.2.0`.
 
-The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.micro` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`):
+The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.micro` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`), one for each level that has scans:
 
 ```text
 <input-name>.ms1-trace.parquet
@@ -115,7 +115,7 @@ The `help` subcommand, `--help`, and `-h` print command usage, the current `majo
 
 Use `--name <name>` to replace `<input-name>` in both output names. The supplied name is used literally, so `--name report.raw` creates `report.raw.ms1-trace.parquet` and `report.raw.msn-trace.parquet`. Names must be valid file names and cannot contain path separators; use `-o` to select the output directory.
 
-Use `--ms1` or `--msn` to write only one level. With neither flag, or with both flags, the tool writes both available levels. A single-level request for a level absent from the source exits with an error before writing files. The MSn file is otherwise not produced for an MS1-only acquisition. The two files have the required columns `scan_id`, `retention_time_sec`, and `ms_level`, plus the implemented optional columns `total_ion_current` and `base_peak_intensity`. `faims_cv` is included as nullable float32 only when the input contains non-zero FAIMS compensation voltages. `injection_time_ms` and all reserved columns are not currently emitted.
+Use `--ms1` or `--msn` to write only one level. With neither flag, or with both flags, the tool writes both levels. A file is only written for a level that has at least one scan. For example, an MS1-only acquisition gives no MSn file. If none of the requested levels has scans, nothing is written and the exit code is 8. The two files have the required columns `scan_id`, `retention_time_sec`, and `ms_level`, plus the implemented optional columns `total_ion_current` and `base_peak_intensity`. `faims_cv` is included as nullable float32 only when the input contains non-zero FAIMS compensation voltages. `injection_time_ms` and all reserved columns are not currently emitted.
 
 `scan_id` is the native Thermo scan number and each row represents exactly one spectrum. Retention time is expressed in seconds. Parquet footer metadata records schema version, generator, Thermo vendor, file level, precision mode, spectrum-level row granularity, source filename, source ID when valid instrument metadata is available, extraction timestamp, acquisition start time, and the vendor-recorded acquisition path. `source_filename` is the original RAW filename, including its extension, and is independent of any `--name` output override. `source_id` is composed as `<instrument-serial>_<creation-time>`, with the creation time formatted as `yyyyMMddHHmmss`, and is omitted when the instrument serial number is unavailable. `acquisition_start_time` is ISO-8601 UTC and is shared by both sibling files. `acquisition_path` is the vendor-recorded folder where the RAW file was acquired, rather than its current location. TSV output does not carry this metadata.
 
@@ -138,11 +138,12 @@ ThermoScanHeaderExtractor sample.raw --tsv --msn -o ./reports
 | Code | Meaning |
 |---|---|
 | `0` | Success |
-| `1` | Invalid usage (missing input, unknown option or argument, missing value for `-o` or `--name`, invalid `--name`), or the level requested with `--ms1` or `--msn` is absent from the input |
+| `1` | Invalid usage (missing input, unknown option or argument, missing value for `-o` or `--name`, invalid `--name`) |
 | `2` | Input file not found |
 | `3` | Input file could not be opened as a Thermo RAW file |
 | `4` | Thermo license terms have not been accepted; run `ThermoScanHeaderExtractor --agree-to-terms` |
 | `5` | License handling failed: the configuration directory could not be determined, the acceptance file could not be written, or the embedded agreement could not be loaded |
+| `8` | None of the requested levels has scans, so no file was written |
 
 Error messages are written to standard error.
 
