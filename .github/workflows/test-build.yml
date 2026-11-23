@@ -311,11 +311,61 @@ jobs:
 
           Write-Host "Published ${{ matrix.runtime }} executable extracted the sample successfully: 3 MS1 and 36 MS2 scans."
 
-      - name: Set up Python for the time zone check
-        if: runner.os == 'Linux'
+      - name: Set up Python for the time zone and console checks
+        if: runner.os == 'Linux' || runner.os == 'Windows'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      # Some callers, such as services, start the tool without a console. It must still
+      # work and write UTF-8. Python can start a process with DETACHED_PROCESS; pwsh cannot.
+      - name: Check commands without a console
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $executable = "./artifacts/ci/${{ matrix.executable }}"
+          $fixture = "./tests/data/thermo/exploris480_ms1_dia_3cycles.raw"
+          $checkWithoutConsole = @'
+          import os, subprocess, sys
+          executable, fixture, root = sys.argv[1:]
+          # The non-ASCII folder name checks that output is UTF-8.
+          config = os.path.join(root, "konfig-ü")
+          marker = os.path.join(config, ".thermo-license-accepted")
+          output = os.path.join(root, "output")
+          environment = dict(os.environ, THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR=config)
+
+          def run(expected_exit_code, *arguments):
+              result = subprocess.run([executable, *arguments], capture_output=True, env=environment,
+                                      creationflags=subprocess.DETACHED_PROCESS, timeout=300)
+              stdout = result.stdout.decode("utf-8", "replace")
+              stderr = result.stderr.decode("utf-8", "replace")
+              if result.returncode != expected_exit_code:
+                  sys.exit(f"{' '.join(arguments)}: expected exit code {expected_exit_code}, "
+                           f"got {result.returncode}: {stderr}")
+              if "\ufffd" in stdout + stderr:
+                  sys.exit(f"{' '.join(arguments)}: the output is not valid UTF-8.")
+              return stdout
+
+          if "©" not in run(0, "help"):
+              sys.exit("help did not print the copyright sign as UTF-8.")
+          if run(4, "--license-status") != marker + "\r\n":
+              sys.exit("--license-status (not accepted) did not print the acceptance file path as UTF-8.")
+          run(0, "--agree-to-terms")
+          if run(0, "--license-status") != marker + "\r\n":
+              sys.exit("--license-status (accepted) did not print the acceptance file path as UTF-8.")
+          run(0, fixture, "--name", "sample", "-o", output)
+          for name in ("sample.ms1-trace.parquet", "sample.msn-trace.parquet"):
+              if not os.path.isfile(os.path.join(output, name)):
+                  sys.exit(f"Extraction without a console did not write {name}.")
+          print("All commands work without a console.")
+          '@
+          $root = Join-Path $env:RUNNER_TEMP "no-console"
+          Remove-Item -Recurse -Force $root -ErrorAction SilentlyContinue
+          python -c $checkWithoutConsole $executable $fixture $root
+          if ($LASTEXITCODE -ne 0) {
+            throw "A command failed without a console."
+          }
 
       # RAW files store the clock time of the acquisition PC. The written time must not
       # depend on the time zone of the machine that runs the extraction.

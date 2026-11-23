@@ -16,6 +16,7 @@
 - Known failures now end with an error message and a documented exit code instead of a crash: 1 for an empty `-o` value or input path, 3 when reading the scans of a RAW file fails, 6 when output files cannot be written, and 7 for unexpected internal errors. Before, these cases ended with a stack trace and an undocumented exit code. If the configuration directory cannot be determined, extraction now exits with 5 instead of 4. Invalid arguments are now checked before the license, so they always give exit code 1. Before, they gave 4 when the license was not accepted.
 
 ### Fixed
+- On Windows, the tool no longer crashes when it is started without a console, for example by some services.
 - Output files are written under a temporary name and renamed when complete, so other programs never see a half-written file.
 - If a requested level has no scans, an existing output file for that level is deleted. Before, a file from an earlier run stayed in place and looked like a result of the new input.
 - Scans without an MS level (Thermo scan types `Par`, `Nl` and `Ng`) are still skipped, but a warning on standard error now says how many were skipped. Before, they were dropped without notice.

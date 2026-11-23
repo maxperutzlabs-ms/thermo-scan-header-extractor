@@ -72,7 +72,6 @@ internal static class LicenseAcceptance
             return 5;
         }
 
-        Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine(new string('=', 38));
         Console.WriteLine("Thermo RawFileReader license agreement");
         Console.WriteLine(new string('=', 38));
@@ -119,7 +118,6 @@ internal static class LicenseAcceptance
             return 5;
         }
 
-        Console.OutputEncoding = Encoding.UTF8;
         Console.WriteLine(new string('=', 38));
         Console.WriteLine("Thermo RawFileReader license agreement");
         Console.WriteLine(new string('=', 38));

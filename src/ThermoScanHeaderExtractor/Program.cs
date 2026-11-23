@@ -46,7 +46,7 @@ namespace ThermoScanHeaderExtractor
         private static int Run(string[] args)
         {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-            Console.OutputEncoding = Encoding.UTF8;
+            UseUtf8Output();
 
             if (args.Length == 1 && IsHelpCommand(args[0]))
             {
@@ -172,6 +172,26 @@ namespace ThermoScanHeaderExtractor
                     GetVersion())
                 .GetAwaiter()
                 .GetResult();
+        }
+
+        /// <summary>
+        /// Makes standard output and standard error UTF-8 without a byte order mark.
+        /// Setting Console.OutputEncoding also switches the console to UTF-8, but on Windows it throws
+        /// when the console code page cannot be set, for example when the process has no console
+        /// (started with DETACHED_PROCESS). UTF-8 writers are then set directly.
+        /// </summary>
+        private static void UseUtf8Output()
+        {
+            try
+            {
+                Console.OutputEncoding = Encoding.UTF8;
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+                Console.SetOut(new StreamWriter(Console.OpenStandardOutput(), utf8) { AutoFlush = true });
+                Console.SetError(new StreamWriter(Console.OpenStandardError(), utf8) { AutoFlush = true });
+            }
         }
 
         private static bool IsHelpCommand(string argument) =>
