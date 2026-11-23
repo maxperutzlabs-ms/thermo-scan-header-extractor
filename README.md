@@ -87,6 +87,7 @@ On Windows, invoke `ThermoScanHeaderExtractor.exe`; on Linux and macOS, invoke `
 ```text
 ThermoScanHeaderExtractor --agree-to-terms
 ThermoScanHeaderExtractor --thermo-license
+ThermoScanHeaderExtractor --license-status
 ThermoScanHeaderExtractor --version
 ThermoScanHeaderExtractor <input.raw> [--tsv] [--high-precision] [--ms1] [--msn]
                          [-o output-directory] [--name output-name]
@@ -101,9 +102,11 @@ Before extracting data for the first time, run `ThermoScanHeaderExtractor --agre
 | macOS | `~/Library/Application Support/ThermoScanHeaderExtractor/.thermo-license-accepted` |
 | Linux | `$XDG_CONFIG_HOME/ThermoScanHeaderExtractor/.thermo-license-accepted` (default `~/.config/...`) |
 
-To keep the acceptance file in another folder, set the environment variable `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` to the absolute path of that folder. `--agree-to-terms` and extraction then use `.thermo-license-accepted` in that folder instead of the location above. The tool never falls back to the location above while the variable is set, even if the folder has no acceptance file. An empty value counts as not set. The value must be an absolute path to a folder, without spaces at the start or end; `~` is not expanded. Otherwise, the exit code is 5. This is useful for tests, containers and service accounts.
+To keep the acceptance file in another folder, set the environment variable `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` to the absolute path of that folder. `--agree-to-terms`, `--license-status` and extraction then use `.thermo-license-accepted` in that folder instead of the location above. The tool never falls back to the location above while the variable is set, even if the folder has no acceptance file. An empty value counts as not set. The value must be an absolute path to a folder, without spaces at the start or end; `~` is not expanded. Otherwise, the exit code is 5. This is useful for tests, containers and service accounts.
 
 To only display the Thermo agreement without accepting it, run `ThermoScanHeaderExtractor --thermo-license`. This command never creates or changes `.thermo-license-accepted`.
+
+To check whether the license has been accepted, run `ThermoScanHeaderExtractor --license-status`. The exit code is 0 if it has been accepted and 4 if not. Standard output is then one line of UTF-8 text: the path of the acceptance file. A short status message goes to standard error. If the location of the acceptance file cannot be determined, for example because `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` is invalid, the exit code is 5 and standard output is empty. The command never creates or changes the acceptance file or its folder.
 
 To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.2.0`.
 
@@ -142,7 +145,7 @@ ThermoScanHeaderExtractor sample.raw --tsv --msn -o ./reports
 | `1` | Invalid usage (missing or empty input path, unknown option or argument, missing or empty value for `-o` or `--name`, invalid `--name`) |
 | `2` | Input file not found or not accessible |
 | `3` | Input file could not be read as a Thermo RAW file, either when opening it or while reading its scans |
-| `4` | Thermo license terms have not been accepted; run `ThermoScanHeaderExtractor --agree-to-terms` |
+| `4` | Thermo license terms have not been accepted; run `ThermoScanHeaderExtractor --agree-to-terms`. `--license-status` also uses this code |
 | `5` | License handling failed: the configuration directory could not be determined, `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` is not a valid absolute folder path, the acceptance file could not be written, or the embedded agreement could not be loaded |
 | `6` | Output files could not be written, for example because `-o` names an existing file, the folder cannot be created, access is denied, or the disk is full |
 | `7` | Unexpected internal error. This is a bug; please report it together with the error message |

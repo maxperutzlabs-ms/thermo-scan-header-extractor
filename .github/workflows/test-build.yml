@@ -60,6 +60,8 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
+          # The tool writes UTF-8; read its output as UTF-8 too.
+          [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
           $outputDirectory = "./artifacts/ci"
           $executable = Join-Path $outputDirectory "${{ matrix.executable }}"
           if (-not (Test-Path $executable -PathType Leaf)) {
@@ -89,17 +91,48 @@ jobs:
           }
           $marker = Join-Path $configDirectory ".thermo-license-accepted"
 
+          # --license-status must exit with the expected code, print only the marker path on
+          # standard output (nothing for exit code 5), and not create or change the marker.
+          function Assert-LicenseStatus([int]$expectedExitCode, [string]$expectedMarker) {
+            $markerPath = if ($expectedMarker) { $expectedMarker } else { $marker }
+            $stateBefore = if (Test-Path $markerPath) { (Get-FileHash $markerPath).Hash } else { "missing" }
+            $stdout = @(& $executable --license-status 2>$null)
+            $exitCode = $LASTEXITCODE
+            $stateAfter = if (Test-Path $markerPath) { (Get-FileHash $markerPath).Hash } else { "missing" }
+            if ($exitCode -ne $expectedExitCode) {
+              throw "Expected --license-status to exit with $expectedExitCode; got $exitCode."
+            }
+            if ($expectedMarker) {
+              $comparison = if ($IsWindows) { [StringComparison]::OrdinalIgnoreCase } else { [StringComparison]::Ordinal }
+              if ($stdout.Count -ne 1 -or -not [string]::Equals([IO.Path]::GetFullPath($stdout[0]), [IO.Path]::GetFullPath($expectedMarker), $comparison)) {
+                throw "Expected --license-status to print only $expectedMarker; got: $($stdout -join ' | ')"
+              }
+            }
+            elseif ($stdout.Count -ne 0) {
+              throw "Expected no standard output from --license-status; got: $($stdout -join ' | ')"
+            }
+            if ($stateAfter -ne $stateBefore) {
+              throw "--license-status changed $markerPath."
+            }
+          }
+
           # With THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR set, every license step uses only that folder.
           # These checks run before the default acceptance below, so a successful extraction here
           # can only come from the acceptance file in the override folder.
           $markerStateBefore = if (Test-Path $marker) { (Get-FileHash $marker).Hash } else { "missing" }
+          Assert-LicenseStatus $(if ($markerStateBefore -eq "missing") { 4 } else { 0 }) $marker
           $licenseRoot = Join-Path $env:RUNNER_TEMP "thermoscan-license"
-          $overrideDirectory = Join-Path $licenseRoot "config"
+          # The non-ASCII name checks that paths are written as UTF-8.
+          $overrideDirectory = Join-Path $licenseRoot "konfig-ü"
           $overrideMarker = Join-Path $overrideDirectory ".thermo-license-accepted"
           $overrideOutput = Join-Path $licenseRoot "output"
           Remove-Item -Recurse -Force $licenseRoot -ErrorAction SilentlyContinue
           try {
             $env:THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR = $overrideDirectory
+            Assert-LicenseStatus 4 $overrideMarker
+            if (Test-Path $overrideDirectory) {
+              throw "--license-status created the override folder."
+            }
             $output = & $executable $fixture -o $overrideOutput 2>&1
             if ($LASTEXITCODE -ne 4) {
               throw "Expected exit code 4 before acceptance in the override folder; got ${LASTEXITCODE}: $($output -join ' | ')"
@@ -111,12 +144,14 @@ jobs:
             if ($LASTEXITCODE -ne 0 -or -not (Test-Path $overrideMarker -PathType Leaf)) {
               throw "--agree-to-terms did not create $overrideMarker (exit code $LASTEXITCODE)."
             }
+            Assert-LicenseStatus 0 $overrideMarker
             & $executable $fixture -o $overrideOutput
             if ($LASTEXITCODE -ne 0) {
               throw "Extraction with acceptance in the override folder failed with exit code $LASTEXITCODE."
             }
 
             # Invalid values: a relative path, a path without a drive letter on Windows, and a file.
+            $overrideMarkerState = (Get-FileHash $overrideMarker).Hash
             $invalidValues = @("relative-config", $overrideMarker)
             if ($env:RUNNER_OS -eq "Windows") {
               $invalidValues += "\no-drive-config"
@@ -131,9 +166,13 @@ jobs:
               if ($LASTEXITCODE -ne 5) {
                 throw "Expected exit code 5 from extraction with the override '$value'; got ${LASTEXITCODE}: $($output -join ' | ')"
               }
+              Assert-LicenseStatus 5 ""
             }
             if ((Test-Path "relative-config") -or (Test-Path "\no-drive-config")) {
               throw "An invalid override path created a folder."
+            }
+            if ((Get-FileHash $overrideMarker).Hash -ne $overrideMarkerState) {
+              throw "Using the acceptance file as the override value changed it."
             }
           }
           finally {
@@ -152,14 +191,17 @@ jobs:
           if (-not (Test-Path $marker -PathType Leaf)) {
             throw "The Thermo license acceptance marker was not created in the per-user configuration directory: $marker"
           }
+          Assert-LicenseStatus 0 $marker
 
-          # Now that the per-user acceptance exists, an empty override folder must still give 4 (no fallback).
-          $emptyOverrideDirectory = Join-Path $licenseRoot "empty-config"
+          # Now that the per-user acceptance exists, an override folder without an acceptance file
+          # must still give 4 (no fallback).
+          $emptyOverrideDirectory = Join-Path $licenseRoot "unaccepted-config"
           try {
             $env:THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR = $emptyOverrideDirectory
+            Assert-LicenseStatus 4 (Join-Path $emptyOverrideDirectory ".thermo-license-accepted")
             $output = & $executable $fixture -o $overrideOutput 2>&1
             if ($LASTEXITCODE -ne 4) {
-              throw "Expected exit code 4 with an empty override folder although the per-user acceptance exists; got ${LASTEXITCODE}: $($output -join ' | ')"
+              throw "Expected exit code 4 with an override folder without an acceptance file although the per-user acceptance exists; got ${LASTEXITCODE}: $($output -join ' | ')"
             }
             if (-not ($output -join "`n").Contains((Join-Path $emptyOverrideDirectory ".thermo-license-accepted"))) {
               throw "The message about missing acceptance does not name the marker in $emptyOverrideDirectory`: $($output -join ' | ')"

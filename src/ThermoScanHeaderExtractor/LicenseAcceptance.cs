@@ -28,6 +28,24 @@ internal static class LicenseAcceptance
         return File.Exists(markerPath) ? 0 : 4;
     }
 
+    /// <summary>
+    /// Implements --license-status. Prints only the marker path on standard output, so that programs can
+    /// read it, and a short status for people on standard error. Never creates or changes anything.
+    /// Returns 0 if accepted, 4 if not, and 5 if the marker location cannot be determined.
+    /// </summary>
+    internal static int PrintAcceptanceStatus()
+    {
+        int status = GetAcceptanceStatus(out string? markerPath);
+        if (status == 5)
+            return status;
+
+        Console.WriteLine(markerPath);
+        Console.Error.WriteLine(status == 0
+            ? "Thermo RawFileReader license terms have been accepted."
+            : "Thermo RawFileReader license terms have not been accepted. To accept them, run: ThermoScanHeaderExtractor --agree-to-terms");
+        return status;
+    }
+
     internal static int AcceptTerms(string version)
     {
         string? markerPath = GetMarkerPath(out string? error);

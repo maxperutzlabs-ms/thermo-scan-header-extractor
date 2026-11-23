@@ -14,6 +14,7 @@
  *   ThermoScanHeaderExtractor help
  *   ThermoScanHeaderExtractor --version
  *   ThermoScanHeaderExtractor --agree-to-terms
+ *   ThermoScanHeaderExtractor --license-status
  *   ThermoScanHeaderExtractor --thermo-license
  */
 
@@ -64,6 +65,9 @@ namespace ThermoScanHeaderExtractor
 
             if (args.Length == 1 && args[0] == "--thermo-license")
                 return LicenseAcceptance.PrintThermoLicense();
+
+            if (args.Length == 1 && args[0] == "--license-status")
+                return LicenseAcceptance.PrintAcceptanceStatus();
 
             // Arguments are checked before the license, so a usage error is always exit code 1.
             string? inputFile = null;
@@ -201,6 +205,8 @@ namespace ThermoScanHeaderExtractor
             Console.WriteLine("  --version          Show only the current version.");
             Console.WriteLine("  --agree-to-terms   Read and explicitly accept the Thermo license terms.");
             Console.WriteLine("  --thermo-license   Display the Thermo license without accepting it.");
+            Console.WriteLine("  --license-status   Print the acceptance file path. Exit code 0: license accepted,");
+            Console.WriteLine("                     4: not accepted, 5: the path cannot be determined.");
             Console.WriteLine();
             Console.WriteLine("Options:");
             Console.WriteLine("  -o <directory>     Write output files to this directory. Defaults to the input directory.");
