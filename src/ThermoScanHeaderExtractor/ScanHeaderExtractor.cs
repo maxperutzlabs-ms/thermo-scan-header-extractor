@@ -190,7 +190,7 @@ namespace ThermoScanHeaderExtractor
                 await WriteParquetFilesAsync(
                     ms1Rows, msnRows, inputFile, outputDirectory, outputName,
                     includeFaimsCv, highPrecision, writeMs1, writeMsn, version,
-                    raw.CreationDate.ToUniversalTime(),
+                    raw.CreationDate,
                     raw.Path,
                     sourceId);
             }
@@ -269,8 +269,11 @@ namespace ThermoScanHeaderExtractor
             string fileStem = outputName ?? Path.GetFileName(inputFile);
             string sourceFilename = Path.GetFileName(inputFile);
             string extractedAt = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+            // RAW files store the clock time of the acquisition PC and label it UTC,
+            // although its time zone is unknown. Write the clock fields as they are,
+            // without converting them and without a time zone suffix.
             string acquisitionStartTimeText = acquisitionStartTime.ToString(
-                "yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+                "yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
 
             if (writeMs1)
             {

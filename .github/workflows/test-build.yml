@@ -146,3 +146,61 @@ jobs:
           }
 
           Write-Host "Published ${{ matrix.runtime }} executable extracted the sample successfully: 3 MS1 and 36 MS2 scans."
+
+      - name: Set up Python for the time zone check
+        if: runner.os == 'Linux'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # RAW files store the clock time of the acquisition PC. The written time must not
+      # depend on the time zone of the machine that runs the extraction.
+      - name: Check acquisition time under different time zones
+        if: runner.os == 'Linux'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          python -m pip install --quiet pyarrow
+          if ($LASTEXITCODE -ne 0) {
+            throw "Could not install pyarrow."
+          }
+
+          $executable = "./artifacts/ci/${{ matrix.executable }}"
+          $fixture = "./tests/data/thermo/exploris480_ms1_dia_3cycles.raw"
+          $readMetadata = @'
+          import sys
+          import pyarrow.parquet as pq
+          for path in sys.argv[1:]:
+              metadata = pq.read_schema(path).metadata
+              print(metadata[b'acquisition_start_time'].decode(), metadata[b'source_id'].decode())
+          '@
+
+          # Standard UTC offsets in hours; Auckland also moves 2026-09-30T11:46:56 to the next day.
+          $expectedOffsets = @{ "UTC" = 0; "Pacific/Auckland" = 12 }
+          foreach ($timeZone in @("UTC", "Pacific/Auckland")) {
+            $outputDirectory = Join-Path $env:RUNNER_TEMP ("time-zone-" + ($timeZone -replace "/", "-"))
+            $env:TZ = $timeZone
+            # pwsh runs on .NET, so this proves that .NET sees the time zone set by TZ.
+            $offset = pwsh -NoProfile -Command "[TimeZoneInfo]::Local.BaseUtcOffset.TotalHours"
+            & $executable $fixture --name sample -o $outputDirectory
+            $exitCode = $LASTEXITCODE
+            Remove-Item Env:TZ
+            if ([double]$offset -ne $expectedOffsets[$timeZone]) {
+              throw "TZ=$timeZone had no effect on .NET: the local UTC offset is $offset hours."
+            }
+            if ($exitCode -ne 0) {
+              throw "Extraction under TZ=$timeZone failed with exit code $exitCode."
+            }
+
+            $files = @("sample.ms1-trace.parquet", "sample.msn-trace.parquet") | ForEach-Object { Join-Path $outputDirectory $_ }
+            $lines = @(python -c $readMetadata @files)
+            if ($LASTEXITCODE -ne 0 -or $lines.Count -ne 2) {
+              throw "Could not read the Parquet metadata written under TZ=$timeZone."
+            }
+            foreach ($line in $lines) {
+              if ($line -ne "2026-09-30T11:46:56 MA10459C_20260930114656") {
+                throw "Under TZ=$timeZone, expected acquisition_start_time 2026-09-30T11:46:56 and source_id MA10459C_20260930114656; got: $line"
+              }
+            }
+            Write-Host "TZ=${timeZone}: acquisition_start_time and source_id are as expected."
+          }
