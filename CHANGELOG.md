@@ -9,6 +9,7 @@
 - The bundled Thermo RawFileReader license is updated to Thermo's new version from November 2026. It is now included as `RawFileReader-DistributionLicense.md` and `RawFileReader-DistributionLicense.doc`, which replace `RawFileReaderLicense.txt` and `RawFileReaderLicense.doc`. Users must now accept the license before use. The attribution and all license texts shown by the tool follow the new terms. To share the tool, send people the link to the release page instead of a copy.
 
 ### Fixed
+- Scans without an MS level (Thermo scan types `Par`, `Nl` and `Ng`) are still skipped, but a warning on standard error now says how many were skipped. Before, they were dropped without notice.
 - TSV files are written as UTF-8 without a byte order mark (BOM). Before, some programs showed an invisible extra character at the start of the first column name (`scan_id`).
 
 ## [0.2.0] - 2026-10-29

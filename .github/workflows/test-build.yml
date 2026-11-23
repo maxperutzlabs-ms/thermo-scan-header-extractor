@@ -110,9 +110,16 @@ jobs:
           $tsvDirectory = Join-Path $testRoot "tsv"
           New-Item -ItemType Directory -Force -Path $parquetDirectory, $tsvDirectory | Out-Null
 
-          & $executable $fixture --name sample -o $parquetDirectory
-          if ($LASTEXITCODE -ne 0) {
-            throw "Parquet extraction failed with exit code $LASTEXITCODE."
+          $stderrFile = Join-Path $testRoot "parquet-stderr.txt"
+          & $executable $fixture --name sample -o $parquetDirectory 2> $stderrFile
+          $exitCode = $LASTEXITCODE
+          $stderrText = Get-Content -Raw $stderrFile
+          if ($exitCode -ne 0) {
+            throw "Parquet extraction failed with exit code ${exitCode}: $stderrText"
+          }
+          # The fixture has only MS1 and MS2 scans, so no scan is skipped and nothing is reported.
+          if (-not [string]::IsNullOrWhiteSpace($stderrText)) {
+            throw "Expected no messages on standard error for the sample; got: $stderrText"
           }
           foreach ($fileName in @("sample.ms1-trace.parquet", "sample.msn-trace.parquet")) {
             $outputFile = Join-Path $parquetDirectory $fileName

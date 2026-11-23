@@ -18,6 +18,7 @@ using Parquet;
 using Parquet.Schema;
 using ThermoFisher.CommonCore.Data;
 using ThermoFisher.CommonCore.Data.Business;
+using ThermoFisher.CommonCore.Data.FilterEnums;
 using ThermoFisher.CommonCore.Data.Interfaces;
 using ThermoFisher.CommonCore.RawFileReader;
 
@@ -142,12 +143,26 @@ namespace ThermoScanHeaderExtractor
             bool includeFaimsCv = hasNonZeroFaimsCv;
             var ms1Rows = new List<ScanRow>();
             var msnRows = new List<ScanRow>();
+            // MSOrder values <= 0 have no MS level: Par, Nl and Ng are "ICIS data only"
+            // scan types, and Any is a filter wildcard. These scans are skipped.
+            var skippedScanCounts = new SortedDictionary<int, int>();
             foreach (ScanRow row in rows)
             {
                 if (row.MsLevel == 1)
                     ms1Rows.Add(row);
                 else if (row.MsLevel > 1)
                     msnRows.Add(row);
+                else
+                    skippedScanCounts[row.MsLevel] = skippedScanCounts.GetValueOrDefault(row.MsLevel) + 1;
+            }
+
+            if (skippedScanCounts.Count > 0)
+            {
+                int skippedTotal = skippedScanCounts.Values.Sum();
+                string countsByType = string.Join(", ", skippedScanCounts.Select(
+                    entry => $"{(MSOrderType)entry.Key}: {entry.Value}"));
+                Console.Error.WriteLine(
+                    $"WARNING: Skipped {skippedTotal} scan(s) without an MS level ({countsByType}).");
             }
 
             // A file is only written for a requested level that has scans; no zero-row files.
