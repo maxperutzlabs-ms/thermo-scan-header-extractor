@@ -313,6 +313,9 @@ jobs:
               throw "Expected exit code $($case.ExitCode) for '$($case.Name)'; got ${LASTEXITCODE}: $($output -join ' | ')"
             }
           }
+          # GitHub Actions fails a pwsh step if the last native command exited with a code other
+          # than 0, even when that code was expected. Reset it after the expected failures above.
+          $global:LASTEXITCODE = 0
 
           $temporaryFiles = @(Get-ChildItem -Force -Recurse -Path $testRoot -Filter "*.tmp")
           if ($temporaryFiles.Count -ne 0) {
