@@ -1,8 +1,8 @@
 {
   "repository": "thermofisherlsms/RawFileReader",
-  "commit": "80963674b5c10e58236da63023ad6fa0264bbb00",
+  "commit": "f6b1cda88862cf8f35cc88c5565f20b09dfb73e6",
   "packages": [
-    "Libs/NetCore/Net8/thermofisher.commoncore.data.8.0.37.nupkg",
-    "Libs/NetCore/Net8/thermofisher.commoncore.rawfilereader.8.0.37.nupkg"
+    "Libs/NetCore/Net8/thermofisher.commoncore.data.8.0.42.nupkg",
+    "Libs/NetCore/Net8/thermofisher.commoncore.rawfilereader.8.0.42.nupkg"
   ]
 }

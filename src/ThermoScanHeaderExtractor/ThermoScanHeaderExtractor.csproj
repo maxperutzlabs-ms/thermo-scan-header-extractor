@@ -15,8 +15,8 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Keep these versions synchronized with the package filenames in thermo-package-source.json. -->
-    <PackageReference Include="ThermoFisher.CommonCore.Data" Version="8.0.37" />
-    <PackageReference Include="ThermoFisher.CommonCore.RawFileReader" Version="8.0.37" />
+    <PackageReference Include="ThermoFisher.CommonCore.Data" Version="8.0.42" />
+    <PackageReference Include="ThermoFisher.CommonCore.RawFileReader" Version="8.0.42" />
     <PackageReference Include="Parquet.Net" Version="6.0.3" />
     <EmbeddedResource Include="..\..\third_party\Thermo.RawFileReader\RawFileReaderLicense.txt"
                       LogicalName="ThermoScanHeaderExtractor.ThirdParty.RawFileReaderLicense.txt" />
