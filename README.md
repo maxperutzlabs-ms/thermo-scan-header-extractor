@@ -25,7 +25,7 @@ ThermoScanHeaderExtractor is licensed under the Apache License 2.0. It uses the 
 
 This summary does not replace the license text.
 
-The `--agree-to-terms` command displays the embedded Thermo agreement and records acceptance when the user explicitly invokes that command. No typed confirmation is required. Acceptance is recorded per user in a `.thermo-license-accepted` file in the user's configuration directory (see [CLI usage](#cli-usage)).
+The `--agree-to-terms` command displays the embedded Thermo agreement and records acceptance when the user explicitly invokes that command. No typed confirmation is required. Acceptance is recorded in a `.thermo-license-accepted` file, by default in the user's configuration directory (see [CLI usage](#cli-usage)).
 
 The read-only `--thermo-license` command displays the same embedded Thermo agreement without recording acceptance or creating the marker file.
 
@@ -93,13 +93,15 @@ ThermoScanHeaderExtractor <input.raw> [--tsv] [--high-precision] [--ms1] [--msn]
 ThermoScanHeaderExtractor help
 ```
 
-Before extracting data for the first time, run `ThermoScanHeaderExtractor --agree-to-terms` and read the displayed Thermo agreement. Invoking this explicit command records acceptance for the current user in a `.thermo-license-accepted` file. No typed confirmation is required. Without that file, extraction exits with an explanation of the requirement. Acceptance is per user, so it survives tool updates and reinstalls, and every user account (including service accounts or containers that invoke the tool) must accept once. Missing directories are created automatically. The file is stored in the user's configuration directory, following the layout of Python's `platformdirs`:
+Before extracting data for the first time, run `ThermoScanHeaderExtractor --agree-to-terms` and read the displayed Thermo agreement. Invoking this explicit command records acceptance for the current user in a `.thermo-license-accepted` file. No typed confirmation is required. Without that file, extraction exits with an explanation of the requirement. Acceptance survives tool updates and reinstalls. By default it is per user, so every user account (including service accounts or containers that invoke the tool) must accept once. Missing directories are created automatically. By default, the file is stored in the user's configuration directory, following the layout of Python's `platformdirs`:
 
 | OS | Location |
 |---|---|
 | Windows | `%LOCALAPPDATA%\perutzms\ThermoScanHeaderExtractor\.thermo-license-accepted` |
 | macOS | `~/Library/Application Support/ThermoScanHeaderExtractor/.thermo-license-accepted` |
 | Linux | `$XDG_CONFIG_HOME/ThermoScanHeaderExtractor/.thermo-license-accepted` (default `~/.config/...`) |
+
+To keep the acceptance file in another folder, set the environment variable `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` to the absolute path of that folder. `--agree-to-terms` and extraction then use `.thermo-license-accepted` in that folder instead of the location above. The tool never falls back to the location above while the variable is set, even if the folder has no acceptance file. An empty value counts as not set. The value must be an absolute path to a folder, without spaces at the start or end; `~` is not expanded. Otherwise, the exit code is 5. This is useful for tests, containers and service accounts.
 
 To only display the Thermo agreement without accepting it, run `ThermoScanHeaderExtractor --thermo-license`. This command never creates or changes `.thermo-license-accepted`.
 
@@ -141,7 +143,7 @@ ThermoScanHeaderExtractor sample.raw --tsv --msn -o ./reports
 | `2` | Input file not found or not accessible |
 | `3` | Input file could not be read as a Thermo RAW file, either when opening it or while reading its scans |
 | `4` | Thermo license terms have not been accepted; run `ThermoScanHeaderExtractor --agree-to-terms` |
-| `5` | License handling failed: the configuration directory could not be determined, the acceptance file could not be written, or the embedded agreement could not be loaded |
+| `5` | License handling failed: the configuration directory could not be determined, `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` is not a valid absolute folder path, the acceptance file could not be written, or the embedded agreement could not be loaded |
 | `6` | Output files could not be written, for example because `-o` names an existing file, the folder cannot be created, access is denied, or the disk is full |
 | `7` | Unexpected internal error. This is a bug; please report it together with the error message |
 | `8` | None of the requested levels has scans, so no file was written |

@@ -210,6 +210,10 @@ namespace ThermoScanHeaderExtractor
             Console.WriteLine("  --ms1              Write only the MS1 output file.");
             Console.WriteLine("  --msn              Write only the MSn output file.");
             Console.WriteLine();
+            Console.WriteLine("Environment:");
+            Console.WriteLine("  THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR");
+            Console.WriteLine("                     Absolute folder path for the license acceptance file.");
+            Console.WriteLine();
             Console.WriteLine("Thermo attribution:");
             Console.WriteLine("  RawFileReader. Copyright © 2016-2026 by Thermo Fisher Scientific, Inc. All rights reserved.");
         }

@@ -79,11 +79,6 @@ jobs:
             throw "Expected --version to print one semantic version line; got: $($versionOutput -join ' | ')"
           }
 
-          # Only the printed license text is suppressed; extraction output stays in the log.
-          $null = & $executable --agree-to-terms
-          if ($LASTEXITCODE -ne 0) {
-            throw "The executable could not record acceptance of the Thermo terms (exit code $LASTEXITCODE)."
-          }
           $configDirectory = switch ($env:RUNNER_OS) {
             "Windows" { Join-Path $env:LOCALAPPDATA "perutzms/ThermoScanHeaderExtractor" }
             "macOS" { Join-Path $HOME "Library/Application Support/ThermoScanHeaderExtractor" }
@@ -93,8 +88,85 @@ jobs:
             }
           }
           $marker = Join-Path $configDirectory ".thermo-license-accepted"
+
+          # With THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR set, every license step uses only that folder.
+          # These checks run before the default acceptance below, so a successful extraction here
+          # can only come from the acceptance file in the override folder.
+          $markerStateBefore = if (Test-Path $marker) { (Get-FileHash $marker).Hash } else { "missing" }
+          $licenseRoot = Join-Path $env:RUNNER_TEMP "thermoscan-license"
+          $overrideDirectory = Join-Path $licenseRoot "config"
+          $overrideMarker = Join-Path $overrideDirectory ".thermo-license-accepted"
+          $overrideOutput = Join-Path $licenseRoot "output"
+          Remove-Item -Recurse -Force $licenseRoot -ErrorAction SilentlyContinue
+          try {
+            $env:THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR = $overrideDirectory
+            $output = & $executable $fixture -o $overrideOutput 2>&1
+            if ($LASTEXITCODE -ne 4) {
+              throw "Expected exit code 4 before acceptance in the override folder; got ${LASTEXITCODE}: $($output -join ' | ')"
+            }
+            if (-not ($output -join "`n").Contains($overrideMarker)) {
+              throw "The message about missing acceptance does not name $overrideMarker`: $($output -join ' | ')"
+            }
+            $null = & $executable --agree-to-terms
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path $overrideMarker -PathType Leaf)) {
+              throw "--agree-to-terms did not create $overrideMarker (exit code $LASTEXITCODE)."
+            }
+            & $executable $fixture -o $overrideOutput
+            if ($LASTEXITCODE -ne 0) {
+              throw "Extraction with acceptance in the override folder failed with exit code $LASTEXITCODE."
+            }
+
+            # Invalid values: a relative path, a path without a drive letter on Windows, and a file.
+            $invalidValues = @("relative-config", $overrideMarker)
+            if ($env:RUNNER_OS -eq "Windows") {
+              $invalidValues += "\no-drive-config"
+            }
+            foreach ($value in $invalidValues) {
+              $env:THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR = $value
+              $output = & $executable --agree-to-terms 2>&1
+              if ($LASTEXITCODE -ne 5) {
+                throw "Expected exit code 5 from --agree-to-terms with the override '$value'; got ${LASTEXITCODE}: $($output -join ' | ')"
+              }
+              $output = & $executable $fixture -o $overrideOutput 2>&1
+              if ($LASTEXITCODE -ne 5) {
+                throw "Expected exit code 5 from extraction with the override '$value'; got ${LASTEXITCODE}: $($output -join ' | ')"
+              }
+            }
+            if ((Test-Path "relative-config") -or (Test-Path "\no-drive-config")) {
+              throw "An invalid override path created a folder."
+            }
+          }
+          finally {
+            Remove-Item Env:THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR -ErrorAction SilentlyContinue
+          }
+          $markerStateAfter = if (Test-Path $marker) { (Get-FileHash $marker).Hash } else { "missing" }
+          if ($markerStateAfter -ne $markerStateBefore) {
+            throw "The per-user acceptance file changed while THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR was set: $marker"
+          }
+
+          # Only the printed license text is suppressed; extraction output stays in the log.
+          $null = & $executable --agree-to-terms
+          if ($LASTEXITCODE -ne 0) {
+            throw "The executable could not record acceptance of the Thermo terms (exit code $LASTEXITCODE)."
+          }
           if (-not (Test-Path $marker -PathType Leaf)) {
             throw "The Thermo license acceptance marker was not created in the per-user configuration directory: $marker"
+          }
+
+          # Now that the per-user acceptance exists, an empty override folder must still give 4 (no fallback).
+          $emptyOverrideDirectory = Join-Path $licenseRoot "empty-config"
+          try {
+            $env:THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR = $emptyOverrideDirectory
+            $output = & $executable $fixture -o $overrideOutput 2>&1
+            if ($LASTEXITCODE -ne 4) {
+              throw "Expected exit code 4 with an empty override folder although the per-user acceptance exists; got ${LASTEXITCODE}: $($output -join ' | ')"
+            }
+            if (-not ($output -join "`n").Contains((Join-Path $emptyOverrideDirectory ".thermo-license-accepted"))) {
+              throw "The message about missing acceptance does not name the marker in $emptyOverrideDirectory`: $($output -join ' | ')"
+            }
+          }
+          finally {
+            Remove-Item Env:THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR -ErrorAction SilentlyContinue
           }
           if (Test-Path (Join-Path $outputDirectory ".thermo-license-accepted")) {
             throw "A license acceptance marker was unexpectedly created beside the published application."

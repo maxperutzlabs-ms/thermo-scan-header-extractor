@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- The environment variable `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` sets the folder of the license acceptance file. If it is set, the per-user configuration directory is not used. A value that is not an absolute folder path gives exit code 5.
+
 ### Changed
 - A trace file is only written for a level that has at least one scan. Previously, when both levels were requested and the input had no MS1 scans, an MS1 file without rows was written.
 - If none of the requested levels has scans, nothing is written and the exit code is 8. Previously, an input without MS1 or MSn scans gave an empty MS1 file and exit code 0, and a missing level requested with `--ms1` or `--msn` gave exit code 1.
