@@ -8,6 +8,9 @@
 - The Thermo RawFileReader packages are updated from 8.0.37 to 8.0.42. This also updates their dependency OpenMcdf from 2.3.0 to 3.1.4.
 - The bundled Thermo RawFileReader license is updated to Thermo's new version from November 2026. It is now included as `RawFileReader-DistributionLicense.md` and `RawFileReader-DistributionLicense.doc`, which replace `RawFileReaderLicense.txt` and `RawFileReaderLicense.doc`. Users must now accept the license before use. The attribution and all license texts shown by the tool follow the new terms. To share the tool, send people the link to the release page instead of a copy.
 
+### Fixed
+- TSV files are written as UTF-8 without a byte order mark (BOM). Before, some programs showed an invisible extra character at the start of the first column name (`scan_id`).
+
 ## [0.2.0] - 2026-10-29
 
 ### Added

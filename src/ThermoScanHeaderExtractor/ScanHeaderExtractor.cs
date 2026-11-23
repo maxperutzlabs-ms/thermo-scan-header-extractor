@@ -214,7 +214,9 @@ namespace ThermoScanHeaderExtractor
             string outputFile,
             bool includeFaimsCv)
         {
-            using var writer = new StreamWriter(outputFile, append: false, System.Text.Encoding.UTF8);
+            // UTF-8 without a byte order mark, so the first header is read as "scan_id".
+            using var writer = new StreamWriter(
+                outputFile, append: false, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
             writer.Write("scan_id\ttotal_ion_current\tbase_peak_intensity\tretention_time_sec\tms_level");
             if (includeFaimsCv)
                 writer.Write("\tfaims_cv");
