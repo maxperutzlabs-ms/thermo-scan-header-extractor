@@ -9,6 +9,7 @@ on:
       - "third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.*"
       - "scripts/build.ps1"
       - "scripts/get-thermo-packages.ps1"
+      - "THIRD-PARTY-NOTICES.txt"
       - "tests/data/thermo/**"
       - "nuget.config"
       - ".github/workflows/test-build.yml"
@@ -20,6 +21,7 @@ on:
       - "third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.*"
       - "scripts/build.ps1"
       - "scripts/get-thermo-packages.ps1"
+      - "THIRD-PARTY-NOTICES.txt"
       - "tests/data/thermo/**"
       - "nuget.config"
       - ".github/workflows/test-build.yml"
@@ -213,7 +215,7 @@ jobs:
           if (Test-Path (Join-Path $outputDirectory ".thermo-license-accepted")) {
             throw "A license acceptance marker was unexpectedly created beside the published application."
           }
-          foreach ($fileName in @("LICENSE.txt", "RawFileReader-DistributionLicense.md", "RawFileReader-DistributionLicense.doc")) {
+          foreach ($fileName in @("LICENSE.txt", "RawFileReader-DistributionLicense.md", "RawFileReader-DistributionLicense.doc", "THIRD-PARTY-NOTICES.txt", "dotnet-LICENSE.txt", "dotnet-THIRD-PARTY-NOTICES.txt")) {
             if (-not (Test-Path (Join-Path $outputDirectory $fileName) -PathType Leaf)) {
               throw "Expected license file was not copied to the publish directory: $fileName"
             }

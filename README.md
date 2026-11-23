@@ -25,6 +25,8 @@ ThermoScanHeaderExtractor is licensed under the Apache License 2.0. It uses the 
 
 This summary does not replace the license text.
 
+The executable also contains the .NET runtime and several open-source libraries, for example OpenMcdf and Parquet.Net. [`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt) lists which license covers which part, with the full license texts. It is included in every release archive, together with the license and notices of the .NET runtime (`dotnet-LICENSE.txt` and `dotnet-THIRD-PARTY-NOTICES.txt`).
+
 The `--agree-to-terms` command displays the embedded Thermo agreement and records acceptance when the user explicitly invokes that command. No typed confirmation is required. Acceptance is recorded in a `.thermo-license-accepted` file, by default in the user's configuration directory (see [CLI usage](#cli-usage)).
 
 The read-only `--thermo-license` command displays the same embedded Thermo agreement without recording acceptance or creating the marker file.
@@ -51,7 +53,8 @@ The Thermo NuGet packages are not stored in this repository. They are downloaded
 1. In `thermo-package-source.json`, set the commit of the upstream repository that contains the new version, and update the package paths.
 2. In `src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj`, update the matching package versions. The versions in both files must agree, or restore fails.
 3. Run `pwsh ./scripts/get-thermo-packages.ps1` (or simply build). Old `.nupkg` files from the previous version can be deleted from the `packages/` folder.
-4. Check whether the license in the upstream repository changed at that commit. If it did, replace `RawFileReader-DistributionLicense.doc` with the upstream file, convert its text to `RawFileReader-DistributionLicense.md`, and update the attribution and license texts in the README, `CHANGELOG.md`, `Program.cs`, `LicenseAcceptance.cs` and `release.yml`. If the upstream file name changed, also update `build.ps1`, the `.csproj`, `release.yml` and `test-build.yml`.
+4. Check whether the new version needs other NuGet packages. If it does, the build stops with an error that names them. Add them to `THIRD-PARTY-NOTICES.txt`, with their license texts from the upstream repository at the matching version.
+5. Check whether the license in the upstream repository changed at that commit. If it did, replace `RawFileReader-DistributionLicense.doc` with the upstream file, convert its text to `RawFileReader-DistributionLicense.md`, and update the attribution and license texts in the README, `CHANGELOG.md`, `Program.cs`, `LicenseAcceptance.cs` and `release.yml`. If the upstream file name changed, also update `build.ps1`, the `.csproj`, `release.yml` and `test-build.yml`.
 
 ## Build
 
@@ -61,7 +64,7 @@ From the repository root, run the following with PowerShell 7:
 pwsh ./scripts/build.ps1
 ```
 
-The script downloads any missing Thermo packages, restores from `nuget.config`, and publishes a self-contained, single-file executable for the current OS and architecture to `artifacts/publish/<runtime-id>/`. Windows uses `artifacts/publish/win-x64/ThermoScanHeaderExtractor.exe`; Linux and macOS use the extensionless `ThermoScanHeaderExtractor` apphost. It copies `LICENSE.txt`, `RawFileReader-DistributionLicense.md`, and `RawFileReader-DistributionLicense.doc` to that output directory.
+The script downloads any missing Thermo packages, restores from `nuget.config`, and publishes a self-contained, single-file executable for the current OS and architecture to `artifacts/publish/<runtime-id>/`. Windows uses `artifacts/publish/win-x64/ThermoScanHeaderExtractor.exe`; Linux and macOS use the extensionless `ThermoScanHeaderExtractor` apphost. It copies `LICENSE.txt`, `RawFileReader-DistributionLicense.md`, `RawFileReader-DistributionLicense.doc`, and `THIRD-PARTY-NOTICES.txt` to that output directory, and the license and notices of the bundled .NET runtime as `dotnet-LICENSE.txt` and `dotnet-THIRD-PARTY-NOTICES.txt`. The build stops with an error if `THIRD-PARTY-NOTICES.txt` does not list exactly the NuGet packages in the executable (apart from the Thermo packages). This happens, for example, after a package update that adds a dependency. Then update `THIRD-PARTY-NOTICES.txt`.
 
 Useful options:
 
@@ -176,6 +179,7 @@ From version 0.3.0, programs that call the tool can rely on the following. If an
 ├── ThermoScanHeaderExtractor.sln        # Standalone solution
 ├── nuget.config                         # NuGet sources, incl. the local Thermo packages folder
 ├── LICENSE.txt                          # License file copied into the build output
+├── THIRD-PARTY-NOTICES.txt              # Licenses of the bundled open-source libraries, copied into the build output
 ├── .github/workflows/                   # CI (build + sample extraction per runtime) and release builds
 ├── scripts/
 │   ├── get-thermo-packages.ps1          # Downloads the Thermo NuGet packages

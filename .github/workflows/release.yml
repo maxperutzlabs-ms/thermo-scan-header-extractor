@@ -129,7 +129,10 @@ jobs:
             "ThermoScanHeaderExtractor.pdb",
             "LICENSE.txt",
             "RawFileReader-DistributionLicense.md",
-            "RawFileReader-DistributionLicense.doc"
+            "RawFileReader-DistributionLicense.doc",
+            "THIRD-PARTY-NOTICES.txt",
+            "dotnet-LICENSE.txt",
+            "dotnet-THIRD-PARTY-NOTICES.txt"
           )
 
           foreach ($fileName in $fileNames) {
