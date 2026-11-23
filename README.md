@@ -110,7 +110,7 @@ To check whether the license has been accepted, run `ThermoScanHeaderExtractor -
 
 To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.2.0`.
 
-The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.micro` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`), one for each level that has scans:
+The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.patch` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`), one for each level that has scans:
 
 ```text
 <input-name>.ms1-trace.parquet
@@ -151,7 +151,20 @@ ThermoScanHeaderExtractor sample.raw --tsv --msn -o ./reports
 | `7` | Unexpected internal error. This is a bug; please report it together with the error message |
 | `8` | None of the requested levels has scans, so no file was written |
 
-Any other exit code means that the tool crashed. Error messages and warnings are written to standard error. Programs that call the tool should check the exit code, not the message text.
+Any other exit code means that the tool crashed, or that it comes from a newer version (see below). Error messages and warnings are written to standard error.
+
+### Stable behaviour for programs that call the tool
+
+From version 0.3.0, programs that call the tool can rely on the following. If any of it ever has to change, the changelog will list it as a breaking change.
+
+- **Exit codes.** The codes in the table above keep their meaning. Later versions may add codes for new situations. New codes start at 9 and stay below 126. Treat any code you don't know as an error. After a crash, Linux and macOS report a signal (in Python, a negative return code), and Windows reports a large code such as 3221225477.
+- **Read only exit codes and the output named here.** Standard error, and the standard output of extraction, `--agree-to-terms` and `--thermo-license`, are meant for people and may change. Only the standard output of `--license-status` and `--version` is meant for programs.
+- **Commands stand alone.** `--agree-to-terms`, `--license-status`, `--thermo-license` and `--version` must be the only argument. Together with anything else, they give exit code 1.
+- **`--license-status`** gives 0 if the license has been accepted and 4 if not. In both cases, standard output is exactly one line of UTF-8 text: the path of the acceptance file, followed by a line break. If that path cannot be determined, it gives 5 and standard output is empty. It never creates or changes the acceptance file or its folder.
+- **`--agree-to-terms`** can be run any number of times. If the license has already been accepted, it changes nothing and gives 0 again. It gives 5 if the acceptance cannot be recorded.
+- **`THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR`** keeps its name and works as described in [CLI usage](#cli-usage).
+- **Extraction.** The options `-o`, `--name`, `--ms1`, `--msn`, `--tsv` and `--high-precision` keep their names and meaning. So do the output file names (`<input-name>.ms1-trace.parquet` and `<input-name>.msn-trace.parquet`, or `.tsv`) and the rules above about which files are written, replaced and deleted.
+- **`--version`** prints one line that starts with the version number in the form `major.minor.patch`.
 
 ## Repository layout
 

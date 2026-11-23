@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Added
+- The README now describes which behaviour programs that call the tool can rely on from this version on: exit codes, `--license-status`, `--agree-to-terms`, `--version`, `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR`, the extraction options and the output file names.
 - `--license-status` shows whether the Thermo license has been accepted, without changing anything. It prints the path of the acceptance file and exits with 0 if the license has been accepted, 4 if not, and 5 if the location of the acceptance file cannot be determined.
 - The environment variable `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` sets the folder of the license acceptance file. If it is set, the per-user configuration directory is not used. A value that is not an absolute folder path gives exit code 5.
 
