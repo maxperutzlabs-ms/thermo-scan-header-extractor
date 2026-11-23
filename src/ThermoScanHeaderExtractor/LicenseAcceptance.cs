@@ -10,7 +10,22 @@ internal static class LicenseAcceptance
     private const string AppAuthor = "perutzms";
     private const string AppName = "ThermoScanHeaderExtractor";
 
-    internal static bool HasAcceptedTerms() => GetMarkerPath() is string markerPath && File.Exists(markerPath);
+    /// <summary>
+    /// Checks whether the license was accepted, without changing anything.
+    /// Returns 0 if accepted and 4 if not; <paramref name="markerPath"/> is then the marker file.
+    /// Returns 5 after printing an error if the marker location cannot be determined.
+    /// </summary>
+    internal static int GetAcceptanceStatus(out string? markerPath)
+    {
+        markerPath = GetMarkerPath();
+        if (markerPath == null)
+        {
+            Console.Error.WriteLine("ERROR: Could not determine the per-user configuration directory to check license acceptance.");
+            return 5;
+        }
+
+        return File.Exists(markerPath) ? 0 : 4;
+    }
 
     internal static int AcceptTerms(string version)
     {
@@ -94,12 +109,11 @@ internal static class LicenseAcceptance
         return 0;
     }
 
-    internal static void PrintAcceptanceRequired()
+    internal static void PrintAcceptanceRequired(string markerPath)
     {
         Console.Error.WriteLine("ERROR: Thermo RawFileReader license terms have not been accepted for this user.");
         Console.Error.WriteLine("Before extracting data, run: ThermoScanHeaderExtractor --agree-to-terms");
-        if (GetMarkerPath() is string markerPath)
-            Console.Error.WriteLine($"Acceptance is recorded per user in: {markerPath}");
+        Console.Error.WriteLine($"Acceptance is recorded per user in: {markerPath}");
         Console.Error.WriteLine("To only read the license, run: ThermoScanHeaderExtractor --thermo-license");
         Console.Error.WriteLine("The license is also included as RawFileReader-DistributionLicense.md in the release archive.");
     }

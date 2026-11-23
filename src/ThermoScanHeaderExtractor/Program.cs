@@ -30,6 +30,20 @@ namespace ThermoScanHeaderExtractor
 
         static int Main(string[] args)
         {
+            try
+            {
+                return Run(args);
+            }
+            catch (Exception exception)
+            {
+                // Exit code 7 is reserved for errors that no other code describes, i.e. bugs.
+                Console.Error.WriteLine($"ERROR: Unexpected internal error. Please report this as a bug: {exception}");
+                return 7;
+            }
+        }
+
+        private static int Run(string[] args)
+        {
             CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             Console.OutputEncoding = Encoding.UTF8;
 
@@ -51,12 +65,7 @@ namespace ThermoScanHeaderExtractor
             if (args.Length == 1 && args[0] == "--thermo-license")
                 return LicenseAcceptance.PrintThermoLicense();
 
-            if (!LicenseAcceptance.HasAcceptedTerms())
-            {
-                LicenseAcceptance.PrintAcceptanceRequired();
-                return 4;
-            }
-
+            // Arguments are checked before the license, so a usage error is always exit code 1.
             string? inputFile = null;
             string? outputDirectory = null;
             string? outputName = null;
@@ -92,6 +101,11 @@ namespace ThermoScanHeaderExtractor
                     }
 
                     outputDirectory = args[++i];
+                    if (outputDirectory.Length == 0)
+                    {
+                        Console.Error.WriteLine("ERROR: -o requires a non-empty output path.");
+                        return 1;
+                    }
                 }
                 else if (args[i] == "--name")
                 {
@@ -114,6 +128,11 @@ namespace ThermoScanHeaderExtractor
                     PrintUsage(Console.Error);
                     return 1;
                 }
+                else if (args[i].Length == 0)
+                {
+                    Console.Error.WriteLine("ERROR: The input path is empty.");
+                    return 1;
+                }
                 else if (inputFile == null)
                 {
                     inputFile = args[i];
@@ -131,6 +150,12 @@ namespace ThermoScanHeaderExtractor
                 PrintUsage(Console.Error);
                 return 1;
             }
+
+            int licenseStatus = LicenseAcceptance.GetAcceptanceStatus(out string? markerPath);
+            if (licenseStatus == 4)
+                LicenseAcceptance.PrintAcceptanceRequired(markerPath!);
+            if (licenseStatus != 0)
+                return licenseStatus;
 
             return ScanHeaderExtractor.ExtractAsync(
                     inputFile,

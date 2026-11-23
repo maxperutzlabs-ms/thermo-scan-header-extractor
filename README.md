@@ -137,14 +137,16 @@ ThermoScanHeaderExtractor sample.raw --tsv --msn -o ./reports
 | Code | Meaning |
 |---|---|
 | `0` | Success |
-| `1` | Invalid usage (missing input, unknown option or argument, missing value for `-o` or `--name`, invalid `--name`) |
-| `2` | Input file not found |
-| `3` | Input file could not be opened as a Thermo RAW file |
+| `1` | Invalid usage (missing or empty input path, unknown option or argument, missing or empty value for `-o` or `--name`, invalid `--name`) |
+| `2` | Input file not found or not accessible |
+| `3` | Input file could not be read as a Thermo RAW file, either when opening it or while reading its scans |
 | `4` | Thermo license terms have not been accepted; run `ThermoScanHeaderExtractor --agree-to-terms` |
 | `5` | License handling failed: the configuration directory could not be determined, the acceptance file could not be written, or the embedded agreement could not be loaded |
+| `6` | Output files could not be written, for example because `-o` names an existing file, the folder cannot be created, access is denied, or the disk is full |
+| `7` | Unexpected internal error. This is a bug; please report it together with the error message |
 | `8` | None of the requested levels has scans, so no file was written |
 
-Error messages are written to standard error.
+Any other exit code means that the tool crashed. Error messages and warnings are written to standard error. Programs that call the tool should check the exit code, not the message text.
 
 ## Repository layout
 

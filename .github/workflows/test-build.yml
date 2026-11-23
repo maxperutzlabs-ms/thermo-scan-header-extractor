@@ -170,6 +170,26 @@ jobs:
             throw "Expected MS2 scan IDs 2-13, 15-26, and 28-39; got: $($msnScanIds -join ',')"
           }
 
+          # Documented exit codes for common failures.
+          $errorDirectory = Join-Path $testRoot "errors"
+          New-Item -ItemType Directory -Force -Path $errorDirectory | Out-Null
+          $existingFile = Join-Path $errorDirectory "existing-file.txt"
+          Set-Content -Path $existingFile -Value "not a directory"
+          $errorCases = @(
+            # If the empty value were dropped, -o would take the fixture path and give 6, not 1.
+            @{ Name = "empty -o value"; Arguments = @("-o", "", $fixture); ExitCode = 1 },
+            @{ Name = "missing input file"; Arguments = @((Join-Path $errorDirectory "missing.raw")); ExitCode = 2 },
+            @{ Name = "input is not a RAW file"; Arguments = @("./tests/data/thermo/README.md", "-o", $errorDirectory); ExitCode = 3 },
+            @{ Name = "-o names an existing file"; Arguments = @($fixture, "-o", $existingFile); ExitCode = 6 }
+          )
+          foreach ($case in $errorCases) {
+            $arguments = $case.Arguments
+            $output = & $executable @arguments 2>&1
+            if ($LASTEXITCODE -ne $case.ExitCode) {
+              throw "Expected exit code $($case.ExitCode) for '$($case.Name)'; got ${LASTEXITCODE}: $($output -join ' | ')"
+            }
+          }
+
           $temporaryFiles = @(Get-ChildItem -Force -Recurse -Path $testRoot -Filter "*.tmp")
           if ($temporaryFiles.Count -ne 0) {
             throw "Temporary files were left behind: $($temporaryFiles.FullName -join ', ')"
