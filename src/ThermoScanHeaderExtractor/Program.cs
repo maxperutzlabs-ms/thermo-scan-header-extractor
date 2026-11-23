@@ -186,7 +186,7 @@ namespace ThermoScanHeaderExtractor
             Console.WriteLine("  --msn              Write only the MSn output file.");
             Console.WriteLine();
             Console.WriteLine("Thermo attribution:");
-            Console.WriteLine("  RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.");
+            Console.WriteLine("  RawFileReader. Copyright © 2016-2026 by Thermo Fisher Scientific, Inc. All rights reserved.");
         }
     }
 }

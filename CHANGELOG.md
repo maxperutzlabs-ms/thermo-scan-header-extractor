@@ -6,6 +6,7 @@
 - A trace file is only written for a level that has at least one scan. Previously, when both levels were requested and the input had no MS1 scans, an MS1 file without rows was written.
 - If none of the requested levels has scans, nothing is written and the exit code is 8. Previously, an input without MS1 or MSn scans gave an empty MS1 file and exit code 0, and a missing level requested with `--ms1` or `--msn` gave exit code 1.
 - The Thermo RawFileReader packages are updated from 8.0.37 to 8.0.42. This also updates their dependency OpenMcdf from 2.3.0 to 3.1.4.
+- The bundled Thermo RawFileReader license is updated to Thermo's new version from November 2026. It is now included as `RawFileReader-DistributionLicense.md` and `RawFileReader-DistributionLicense.doc`, which replace `RawFileReaderLicense.txt` and `RawFileReaderLicense.doc`. Users must now accept the license before use. The attribution and all license texts shown by the tool follow the new terms. To share the tool, send people the link to the release page instead of a copy.
 
 ## [0.2.0] - 2026-10-29
 

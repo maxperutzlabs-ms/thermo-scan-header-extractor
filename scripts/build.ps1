@@ -13,8 +13,8 @@ $ErrorActionPreference = "Stop"
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $project = Join-Path $repositoryRoot "src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj"
 $nugetConfig = Join-Path $repositoryRoot "nuget.config"
-$thermoLicenseText = Join-Path $repositoryRoot "third_party/Thermo.RawFileReader/RawFileReaderLicense.txt"
-$thermoLicenseDocument = Join-Path $repositoryRoot "third_party/Thermo.RawFileReader/RawFileReaderLicense.doc"
+$thermoLicenseText = Join-Path $repositoryRoot "third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.md"
+$thermoLicenseDocument = Join-Path $repositoryRoot "third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.doc"
 $productLicense = Join-Path $repositoryRoot "LICENSE.txt"
 $downloadScript = Join-Path $PSScriptRoot "get-thermo-packages.ps1"
 

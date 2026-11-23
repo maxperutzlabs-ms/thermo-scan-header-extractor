@@ -6,6 +6,7 @@ on:
       - "src/ThermoScanHeaderExtractor/**/*.cs"
       - "src/ThermoScanHeaderExtractor/**/*.csproj"
       - "third_party/Thermo.RawFileReader/thermo-package-source.json"
+      - "third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.*"
       - "scripts/build.ps1"
       - "scripts/get-thermo-packages.ps1"
       - "tests/data/thermo/**"
@@ -16,6 +17,7 @@ on:
       - "src/ThermoScanHeaderExtractor/**/*.cs"
       - "src/ThermoScanHeaderExtractor/**/*.csproj"
       - "third_party/Thermo.RawFileReader/thermo-package-source.json"
+      - "third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.*"
       - "scripts/build.ps1"
       - "scripts/get-thermo-packages.ps1"
       - "tests/data/thermo/**"
@@ -97,7 +99,7 @@ jobs:
           if (Test-Path (Join-Path $outputDirectory ".thermo-license-accepted")) {
             throw "A license acceptance marker was unexpectedly created beside the published application."
           }
-          foreach ($fileName in @("LICENSE.txt", "RawFileReaderLicense.txt", "RawFileReaderLicense.doc")) {
+          foreach ($fileName in @("LICENSE.txt", "RawFileReader-DistributionLicense.md", "RawFileReader-DistributionLicense.doc")) {
             if (-not (Test-Path (Join-Path $outputDirectory $fileName) -PathType Leaf)) {
               throw "Expected license file was not copied to the publish directory: $fileName"
             }

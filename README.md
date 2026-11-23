@@ -3,10 +3,7 @@
 ThermoScanHeaderExtractor is a cross-platform command-line tool that extracts compact scan-header metadata from Thermo `.raw` files on Windows, Linux, and macOS. It writes Snappy-compressed Parquet scan-table files by default, so it can be invoked by external applications or used directly from a command prompt. An optional `--tsv` flag writes the same files as tab-separated text for diagnostics.
 
 > [!WARNING]
-> **Proprietary license notice:** Built executables and release archives of
-> ThermoScanHeaderExtractor include proprietary Thermo RawFileReader components.
-> End users must not redistribute the executable, bundled dependencies, or release
-> archives.
+> **Thermo license notice:** Built executables and release archives include the proprietary Thermo RawFileReader library. Using them requires accepting the [Thermo RawFileReader license](#license-and-usage-restrictions). To share the tool, send people the link to the release page instead of a copy.
 
 ## Overview
 
@@ -19,17 +16,18 @@ ThermoScanHeaderExtractor is a cross-platform command-line tool that extracts co
 
 ## License and usage restrictions
 
-ThermoScanHeaderExtractor is licensed under the Apache License 2.0. It depends on Thermo RawFileReader under the terms of the  [Thermo RawFileReader license](third_party/Thermo.RawFileReader/RawFileReaderLicense.txt) (the original [Word document](third_party/Thermo.RawFileReader/RawFileReaderLicense.doc) is also retained for reference).
+ThermoScanHeaderExtractor is licensed under the Apache License 2.0. It uses the Thermo RawFileReader library, which has its own [Thermo RawFileReader license](third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.md) (the original [Word document](third_party/Thermo.RawFileReader/RawFileReader-DistributionLicense.doc) is kept for reference). In short:
 
-- **No end-user redistribution:** Thermo's terms require end users to be prohibited from redistributing this software to others.
-- **Non-commercial use:** Thermo's terms prohibit commercial exploitation without Thermo's prior written consent.
-- **Attribution:** `RawFileReader reading tool. Copyright © 2016 by Thermo Fisher Scientific, Inc. All rights reserved.`
+- **Accept before use:** you must accept the Thermo license before you use the tool, with `--agree-to-terms` (see below).
+- **No commercial exploitation:** you may not exploit the software commercially without Thermo's written consent, for example by selling it, charging fees for it, or passing it on for payment.
+- **Passing it on:** you may only pass RawFileReader on together with your own software, and only under the conditions in section 3 of the Thermo license. To share the tool, send people the link to the release page instead of a copy.
+- **Attribution:** `RawFileReader. Copyright © 2016-2026 by Thermo Fisher Scientific, Inc. All rights reserved.`
+
+This summary does not replace the license text.
 
 The `--agree-to-terms` command displays the embedded Thermo agreement and records acceptance when the user explicitly invokes that command. No typed confirmation is required. Acceptance is recorded per user in a `.thermo-license-accepted` file in the user's configuration directory (see [CLI usage](#cli-usage)).
 
 The read-only `--thermo-license` command displays the same embedded Thermo agreement without recording acceptance or creating the marker file.
-
-Release maintainers must retain Thermo's written redistribution authorization with their release records before publishing a release artifact.
 
 ## Requirements
 
@@ -50,9 +48,10 @@ The Thermo NuGet packages are not stored in this repository. They are downloaded
 
 ### Updating the Thermo version
 
-1. In `thermo-package-source.json`, update the package paths (and the commit, if needed).
+1. In `thermo-package-source.json`, set the commit of the upstream repository that contains the new version, and update the package paths.
 2. In `src/ThermoScanHeaderExtractor/ThermoScanHeaderExtractor.csproj`, update the matching package versions. The versions in both files must agree, or restore fails.
 3. Run `pwsh ./scripts/get-thermo-packages.ps1` (or simply build). Old `.nupkg` files from the previous version can be deleted from the `packages/` folder.
+4. Check whether the license in the upstream repository changed at that commit. If it did, replace `RawFileReader-DistributionLicense.doc` with the upstream file, convert its text to `RawFileReader-DistributionLicense.md`, and update the attribution and license texts in the README, `CHANGELOG.md`, `Program.cs`, `LicenseAcceptance.cs` and `release.yml`. If the upstream file name changed, also update `build.ps1`, the `.csproj`, `release.yml` and `test-build.yml`.
 
 ## Build
 
@@ -62,7 +61,7 @@ From the repository root, run the following with PowerShell 7:
 pwsh ./scripts/build.ps1
 ```
 
-The script downloads any missing Thermo packages, restores from `nuget.config`, and publishes a self-contained, single-file executable for the current OS and architecture to `artifacts/publish/<runtime-id>/`. Windows uses `artifacts/publish/win-x64/ThermoScanHeaderExtractor.exe`; Linux and macOS use the extensionless `ThermoScanHeaderExtractor` apphost. It copies `LICENSE.txt`, `RawFileReaderLicense.txt`, and `RawFileReaderLicense.doc` to that output directory.
+The script downloads any missing Thermo packages, restores from `nuget.config`, and publishes a self-contained, single-file executable for the current OS and architecture to `artifacts/publish/<runtime-id>/`. Windows uses `artifacts/publish/win-x64/ThermoScanHeaderExtractor.exe`; Linux and macOS use the extensionless `ThermoScanHeaderExtractor` apphost. It copies `LICENSE.txt`, `RawFileReader-DistributionLicense.md`, and `RawFileReader-DistributionLicense.doc` to that output directory.
 
 Useful options:
 
@@ -163,8 +162,8 @@ Error messages are written to standard error.
 ├── third_party/Thermo.RawFileReader/
 │   ├── thermo-package-source.json       # Pinned upstream repository, commit and package paths
 │   ├── packages/                        # Downloaded .nupkg files (git-ignored)
-│   ├── RawFileReaderLicense.txt         # Thermo license text
-│   └── RawFileReaderLicense.doc         # Original Thermo license document
+│   ├── RawFileReader-DistributionLicense.md   # Thermo license text (converted from the .doc)
+│   └── RawFileReader-DistributionLicense.doc  # Original Thermo license document
 ├── artifacts/publish/<runtime>/         # Build output (git-ignored, created by `build.ps1`)
 └── README.md
 ```

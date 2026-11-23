@@ -62,8 +62,11 @@ jobs:
             echo
             echo "## Thermo RawFileReader license"
             echo
-            echo "The archives include proprietary Thermo RawFileReader components and must not be redistributed."
-            echo "Before the first extraction, run \`ThermoScanHeaderExtractor --agree-to-terms\` to accept the Thermo license terms."
+            echo "The archives include the proprietary Thermo RawFileReader library. Using it requires accepting its license, which is included as RawFileReader-DistributionLicense.md. The license does not allow commercial exploitation without Thermo's written consent, for example selling the software or charging fees for it. To share the tool, send people the link to this release page instead of a copy."
+            echo
+            echo "RawFileReader. Copyright © 2016-2026 by Thermo Fisher Scientific, Inc. All rights reserved."
+            echo
+            echo "Before the first extraction, run \`ThermoScanHeaderExtractor --agree-to-terms\` to read and accept the Thermo license."
           } > release-notes.md
 
       - name: Create draft release
@@ -125,8 +128,8 @@ jobs:
             $env:EXECUTABLE,
             "ThermoScanHeaderExtractor.pdb",
             "LICENSE.txt",
-            "RawFileReaderLicense.txt",
-            "RawFileReaderLicense.doc"
+            "RawFileReader-DistributionLicense.md",
+            "RawFileReader-DistributionLicense.doc"
           )
 
           foreach ($fileName in $fileNames) {

@@ -6,7 +6,7 @@ namespace ThermoScanHeaderExtractor;
 internal static class LicenseAcceptance
 {
     private const string MarkerFileName = ".thermo-license-accepted";
-    private const string LicenseResourceName = "ThermoScanHeaderExtractor.ThirdParty.RawFileReaderLicense.txt";
+    private const string LicenseResourceName = "ThermoScanHeaderExtractor.ThirdParty.RawFileReader-DistributionLicense.md";
     private const string AppAuthor = "perutzms";
     private const string AppName = "ThermoScanHeaderExtractor";
 
@@ -44,7 +44,7 @@ internal static class LicenseAcceptance
         Console.WriteLine(new string('=', 38));
         Console.WriteLine(licenseText);
         Console.WriteLine(new string('=', 38));
-        Console.WriteLine("This agreement prohibits end users from redistributing this software to others.");
+        Console.WriteLine("Using this software requires accepting this license.");
         Console.WriteLine("The `--agree-to-terms` command records your acceptance of these terms and enables extraction.");
         Console.WriteLine(new string('=', 38));
         Console.WriteLine();
@@ -100,8 +100,8 @@ internal static class LicenseAcceptance
         Console.Error.WriteLine("Before extracting data, run: ThermoScanHeaderExtractor --agree-to-terms");
         if (GetMarkerPath() is string markerPath)
             Console.Error.WriteLine($"Acceptance is recorded per user in: {markerPath}");
-        Console.Error.WriteLine("The Thermo terms prohibit end users from redistributing this software to others.");
-        Console.Error.WriteLine("The license is also distributed as RawFileReaderLicense.txt beside the executable.");
+        Console.Error.WriteLine("To only read the license, run: ThermoScanHeaderExtractor --thermo-license");
+        Console.Error.WriteLine("The license is also included as RawFileReader-DistributionLicense.md in the release archive.");
     }
 
     /// <summary>
