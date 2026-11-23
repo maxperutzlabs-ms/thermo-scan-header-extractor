@@ -1,6 +1,6 @@
 # ThermoScanHeaderExtractor
 
-ThermoScanHeaderExtractor is a cross-platform command-line tool that extracts compact scan-header metadata from Thermo `.raw` files on Windows, Linux, and macOS. It writes Snappy-compressed Parquet scan-table files by default, so it can be invoked by external applications or used directly from a command prompt. An optional `--tsv` flag writes the same files as tab-separated text for diagnostics.
+ThermoScanHeaderExtractor is a cross-platform command-line tool that extracts compact scan-header metadata from Thermo `.raw` files on Windows, Linux, and macOS. It writes Snappy-compressed Parquet scan-table files by default, which follow the [scan-trace specification](https://github.com/maxperutzlabs-ms/rawtrace-qc/blob/main/docs/scan-trace-spec.md), so it can be invoked by external applications or used directly from a command prompt. An optional `--tsv` flag writes the same files as tab-separated text for diagnostics.
 
 > [!WARNING]
 > **Thermo license notice:** Built executables and release archives include the proprietary Thermo RawFileReader library. Using them requires accepting the [Thermo RawFileReader license](#license-and-usage-restrictions). To share the tool, send people the link to the release page instead of a copy.
@@ -125,6 +125,8 @@ Use `--ms1` or `--msn` to write only one level. With neither flag, or with both 
 
 The default `low` precision mode stores `total_ion_current`, `base_peak_intensity`, and `retention_time_sec` as float32. `--high-precision` writes those three columns as float64. `faims_cv` is always float32. The `--tsv` flag writes the same selected MS1/MSn sibling files with a `.tsv` extension instead of `.parquet`. TSV files are UTF-8 text without a byte order mark, and every line ends with a line feed (LF), also on Windows. They have the same columns and units, but do not carry Parquet schema metadata.
 
+The Parquet files follow schema version 1 of the [scan-trace specification](https://github.com/maxperutzlabs-ms/rawtrace-qc/blob/main/docs/scan-trace-spec.md) in the rawtrace-qc repository. The specification defines the file names, columns, units, row order, null values and footer metadata, and what programs that read the files can rely on. The `schema_version` key in the footer metadata records the schema version.
+
 Examples:
 
 ```powershell
@@ -164,6 +166,7 @@ From version 0.3.0, programs that call the tool can rely on the following. If an
 - **`--agree-to-terms`** can be run any number of times. If the license has already been accepted, it changes nothing and gives 0 again. It gives 5 if the acceptance cannot be recorded.
 - **`THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR`** keeps its name and works as described in [CLI usage](#cli-usage).
 - **Extraction.** The options `-o`, `--name`, `--ms1`, `--msn`, `--tsv` and `--high-precision` keep their names and meaning. So do the output file names (`<input-name>.ms1-trace.parquet` and `<input-name>.msn-trace.parquet`, or `.tsv`) and the rules above about which files are written, replaced and deleted.
+- **Output content.** The Parquet files follow schema version 1 of the [scan-trace specification](https://github.com/maxperutzlabs-ms/rawtrace-qc/blob/main/docs/scan-trace-spec.md). Writing a new schema version is a breaking change. Changes to the specification that keep schema version 1 never change which files conform, so they don't affect the tool.
 - **`--version`** prints one line that starts with the version number in the form `major.minor.patch`.
 
 ## Repository layout
