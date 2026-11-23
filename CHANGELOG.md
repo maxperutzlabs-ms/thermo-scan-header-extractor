@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.3.0] - 2026-11-23
 
 ### Added
 - The README links the [scan-trace specification](https://github.com/maxperutzlabs-ms/rawtrace-qc/blob/main/docs/scan-trace-spec.md) that the Parquet files follow (schema version 1).
