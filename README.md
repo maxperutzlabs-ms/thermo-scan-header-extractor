@@ -39,7 +39,7 @@ The build produces a self-contained executable, so end users do not need to inst
 
 ## Thermo RawFileReader packages
 
-The Thermo NuGet packages are not stored in this repository. They are downloaded from Thermo's public GitHub repository (`thermofisherlsms/RawFileReader`) at a pinned commit into `third_party/Thermo.RawFileReader/packages/`, which `nuget.config` uses as a local feed. The repository, commit, and package paths are defined in `third_party/Thermo.RawFileReader/thermo-package-source.json`.
+The Thermo NuGet packages are not stored in this repository. They are downloaded from Thermo's public GitHub repository (`thermofisherlsms/RawFileReader`) at a pinned commit into `third_party/Thermo.RawFileReader/packages/`, which `nuget.config` uses as a local feed. `nuget.config` allows the Thermo packages only from this folder, never from nuget.org. The repository, commit, and package paths are defined in `third_party/Thermo.RawFileReader/thermo-package-source.json`.
 
 - `scripts/build.ps1` runs the download automatically. Packages that already exist in the local feed are skipped, so a normal build needs no manual setup.
 - To download the packages without building, run: `pwsh ./scripts/get-thermo-packages.ps1`
