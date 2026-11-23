@@ -37,9 +37,16 @@ jobs:
               ;;
           esac
 
+  # The same build and extraction tests as for every push. Nothing is created or
+  # published unless they pass on all runtimes.
+  test:
+    name: Test build
+    needs: validate
+    uses: ./.github/workflows/test-build.yml
+
   create-release:
     name: Create draft release
-    needs: validate
+    needs: [validate, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write

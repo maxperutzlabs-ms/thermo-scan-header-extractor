@@ -1,7 +1,11 @@
 name: Test build
 
 on:
+  # Only branch pushes: for a version tag, release.yml runs this workflow itself, before it
+  # publishes anything. GitHub ignores path filters for tag pushes.
   push:
+    branches:
+      - "**"
     paths:
       - "src/ThermoScanHeaderExtractor/**/*.cs"
       - "src/ThermoScanHeaderExtractor/**/*.csproj"
@@ -26,6 +30,7 @@ on:
       - "nuget.config"
       - ".github/workflows/test-build.yml"
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   contents: read
