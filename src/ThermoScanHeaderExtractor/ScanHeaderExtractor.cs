@@ -172,6 +172,19 @@ namespace ThermoScanHeaderExtractor
             bool writeMs1 = requestMs1 && ms1Rows.Count > 0;
             bool writeMsn = requestMsn && msnRows.Count > 0;
 
+            string destinationDirectory = GetDestinationDirectory(inputFile, outputDirectory);
+            string fileStem = outputName ?? Path.GetFileName(inputFile);
+            string extension = tsvOutput ? "tsv" : "parquet";
+            string ms1File = Path.Combine(destinationDirectory, $"{fileStem}.ms1-trace.{extension}");
+            string msnFile = Path.Combine(destinationDirectory, $"{fileStem}.msn-trace.{extension}");
+
+            // A requested level without scans gets no file. An older file with that name
+            // came from an earlier run and would no longer match the input, so remove it.
+            if (requestMs1 && !writeMs1 && File.Exists(ms1File))
+                File.Delete(ms1File);
+            if (requestMsn && !writeMsn && File.Exists(msnFile))
+                File.Delete(msnFile);
+
             if (!writeMs1 && !writeMsn)
             {
                 string requestedLevels = selectAllLevels ? "MS1 or MSn" : selectMs1 ? "MS1" : "MSn";
@@ -179,49 +192,67 @@ namespace ThermoScanHeaderExtractor
                 return 8;
             }
 
-            if (tsvOutput)
+            var outputs = new List<(IReadOnlyList<ScanRow> Rows, string MsLevelFile, string OutputFile)>();
+            if (writeMs1)
+                outputs.Add((ms1Rows, "ms1", ms1File));
+            if (writeMsn)
+                outputs.Add((msnRows, "msn", msnFile));
+
+            string sourceFilename = Path.GetFileName(inputFile);
+            string extractedAt = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+            // RAW files store the clock time of the acquisition PC and label it UTC,
+            // although its time zone is unknown. Write the clock fields as they are,
+            // without converting them and without a time zone suffix.
+            string acquisitionStartTime = raw.CreationDate.ToString(
+                "yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
+
+            // Each file is written under a temporary name in the output directory and renamed
+            // into place only after all files are complete, so no reader sees a partial file.
+            Directory.CreateDirectory(destinationDirectory);
+            var temporaryFiles = new List<string>();
+            try
             {
-                WriteTsvFiles(
-                    ms1Rows, msnRows, inputFile, outputDirectory, outputName,
-                    includeFaimsCv, writeMs1, writeMsn);
+                foreach (var output in outputs)
+                {
+                    // Short name without the stem, so it is never longer than allowed when the final name fits.
+                    string temporaryFile = Path.Combine(
+                        destinationDirectory, $".{output.MsLevelFile}-trace.{Guid.NewGuid():N}.tmp");
+                    temporaryFiles.Add(temporaryFile);
+                    if (tsvOutput)
+                    {
+                        WriteTsvFile(output.Rows, temporaryFile, includeFaimsCv);
+                    }
+                    else
+                    {
+                        await WriteParquetFileAsync(
+                            output.Rows, temporaryFile, output.MsLevelFile, includeFaimsCv, highPrecision,
+                            sourceFilename, extractedAt, acquisitionStartTime, raw.Path, sourceId, version);
+                    }
+                }
+
+                for (int i = 0; i < outputs.Count; i++)
+                    File.Move(temporaryFiles[i], outputs[i].OutputFile, overwrite: true);
             }
-            else
+            finally
             {
-                await WriteParquetFilesAsync(
-                    ms1Rows, msnRows, inputFile, outputDirectory, outputName,
-                    includeFaimsCv, highPrecision, writeMs1, writeMsn, version,
-                    raw.CreationDate,
-                    raw.Path,
-                    sourceId);
+                foreach (string temporaryFile in temporaryFiles)
+                    DeleteTemporaryFile(temporaryFile);
             }
 
             return 0;
         }
 
-        private static void WriteTsvFiles(
-            IReadOnlyList<ScanRow> ms1Rows,
-            IReadOnlyList<ScanRow> msnRows,
-            string inputFile,
-            string? outputDirectory,
-            string? outputName,
-            bool includeFaimsCv,
-            bool writeMs1,
-            bool writeMsn)
+        /// <summary>Removes a leftover temporary file without hiding the original error.</summary>
+        private static void DeleteTemporaryFile(string temporaryFile)
         {
-            string destinationDirectory = GetDestinationDirectory(inputFile, outputDirectory);
-            Directory.CreateDirectory(destinationDirectory);
-            string fileStem = outputName ?? Path.GetFileName(inputFile);
-
-            if (writeMs1)
-                WriteTsvFile(
-                    ms1Rows,
-                    Path.Combine(destinationDirectory, fileStem + ".ms1-trace.tsv"),
-                    includeFaimsCv);
-            if (writeMsn)
-                WriteTsvFile(
-                    msnRows,
-                    Path.Combine(destinationDirectory, fileStem + ".msn-trace.tsv"),
-                    includeFaimsCv);
+            try
+            {
+                File.Delete(temporaryFile);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"WARNING: Could not remove the temporary file {temporaryFile}: {exception.Message}");
+            }
         }
 
         private static void WriteTsvFile(
@@ -245,66 +276,6 @@ namespace ThermoScanHeaderExtractor
                 if (includeFaimsCv)
                     writer.Write($"\t{row.FaimsCv?.ToString("G", CultureInfo.InvariantCulture) ?? ""}");
                 writer.WriteLine();
-            }
-        }
-
-        private static async Task WriteParquetFilesAsync(
-            IReadOnlyList<ScanRow> ms1Rows,
-            IReadOnlyList<ScanRow> msnRows,
-            string inputFile,
-            string? outputDirectory,
-            string? outputName,
-            bool includeFaimsCv,
-            bool highPrecision,
-            bool writeMs1,
-            bool writeMsn,
-            string version,
-            DateTime acquisitionStartTime,
-            string acquisitionPath,
-            string? sourceId)
-        {
-            string destinationDirectory = GetDestinationDirectory(inputFile, outputDirectory);
-            Directory.CreateDirectory(destinationDirectory);
-
-            string fileStem = outputName ?? Path.GetFileName(inputFile);
-            string sourceFilename = Path.GetFileName(inputFile);
-            string extractedAt = DateTime.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
-            // RAW files store the clock time of the acquisition PC and label it UTC,
-            // although its time zone is unknown. Write the clock fields as they are,
-            // without converting them and without a time zone suffix.
-            string acquisitionStartTimeText = acquisitionStartTime.ToString(
-                "yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
-
-            if (writeMs1)
-            {
-                await WriteParquetFileAsync(
-                    ms1Rows,
-                    Path.Combine(destinationDirectory, fileStem + ".ms1-trace.parquet"),
-                    "ms1",
-                    includeFaimsCv,
-                    highPrecision,
-                    sourceFilename,
-                    extractedAt,
-                    acquisitionStartTimeText,
-                    acquisitionPath,
-                    sourceId,
-                    version);
-            }
-
-            if (writeMsn)
-            {
-                await WriteParquetFileAsync(
-                    msnRows,
-                    Path.Combine(destinationDirectory, fileStem + ".msn-trace.parquet"),
-                    "msn",
-                    includeFaimsCv,
-                    highPrecision,
-                    sourceFilename,
-                    extractedAt,
-                    acquisitionStartTimeText,
-                    acquisitionPath,
-                    sourceId,
-                    version);
             }
         }
 

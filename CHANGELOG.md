@@ -10,6 +10,8 @@
 - `acquisition_start_time` no longer ends in `Z`. It is the local clock time of the acquisition PC, for example `2026-09-30T11:46:56`, because RAW files do not record the time zone. Before, this clock time was written with a `Z`, which wrongly marked it as UTC. The tool no longer converts the time, so the result does not depend on the time zone of the computer that runs the extraction. Programs that read this value must accept it without `Z`.
 
 ### Fixed
+- Output files are written under a temporary name and renamed when complete, so other programs never see a half-written file.
+- If a requested level has no scans, an existing output file for that level is deleted. Before, a file from an earlier run stayed in place and looked like a result of the new input.
 - Scans without an MS level (Thermo scan types `Par`, `Nl` and `Ng`) are still skipped, but a warning on standard error now says how many were skipped. Before, they were dropped without notice.
 - TSV files are written as UTF-8 without a byte order mark (BOM). Before, some programs showed an invisible extra character at the start of the first column name (`scan_id`).
 

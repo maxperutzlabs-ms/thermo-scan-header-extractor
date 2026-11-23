@@ -109,6 +109,8 @@ jobs:
           $parquetDirectory = Join-Path $testRoot "parquet"
           $tsvDirectory = Join-Path $testRoot "tsv"
           New-Item -ItemType Directory -Force -Path $parquetDirectory, $tsvDirectory | Out-Null
+          # An existing output file must be replaced by the new one.
+          Set-Content -Path (Join-Path $parquetDirectory "sample.ms1-trace.parquet") -Value "old output"
 
           $stderrFile = Join-Path $testRoot "parquet-stderr.txt"
           & $executable $fixture --name sample -o $parquetDirectory 2> $stderrFile
@@ -126,6 +128,29 @@ jobs:
             if (-not (Test-Path $outputFile -PathType Leaf) -or (Get-Item $outputFile).Length -eq 0) {
               throw "Expected non-empty Parquet output was not produced: $outputFile"
             }
+            # Parquet files start and end with the magic bytes "PAR1".
+            $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path $outputFile))
+            $head = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 4)
+            $tail = [System.Text.Encoding]::ASCII.GetString($bytes, $bytes.Length - 4, 4)
+            if ($head -ne "PAR1" -or $tail -ne "PAR1") {
+              throw "Output is not a complete Parquet file: $outputFile"
+            }
+          }
+
+          # With --ms1, the MS1 file is written and an existing MSn file is left alone.
+          $ms1OnlyDirectory = Join-Path $testRoot "ms1-only"
+          New-Item -ItemType Directory -Force -Path $ms1OnlyDirectory | Out-Null
+          $otherLevelFile = Join-Path $ms1OnlyDirectory "sample.msn-trace.parquet"
+          Set-Content -Path $otherLevelFile -Value "not requested"
+          & $executable $fixture --name sample --ms1 -o $ms1OnlyDirectory
+          if ($LASTEXITCODE -ne 0) {
+            throw "MS1-only extraction failed with exit code $LASTEXITCODE."
+          }
+          if (-not (Test-Path (Join-Path $ms1OnlyDirectory "sample.ms1-trace.parquet") -PathType Leaf)) {
+            throw "MS1-only extraction did not write the MS1 file."
+          }
+          if ((Get-Content -Raw $otherLevelFile).Trim() -ne "not requested") {
+            throw "MS1-only extraction changed the MSn file, which was not requested."
           }
 
           & $executable $fixture --name sample --tsv -o $tsvDirectory
@@ -143,6 +168,11 @@ jobs:
           $invalidMsnRows = @($msnLines | Select-Object -Skip 1 | Where-Object { ($_ -split "`t")[4] -ne "2" })
           if (($msnScanIds -join ",") -ne ($expectedMsnScanIds -join ",") -or $invalidMsnRows.Count -ne 0) {
             throw "Expected MS2 scan IDs 2-13, 15-26, and 28-39; got: $($msnScanIds -join ',')"
+          }
+
+          $temporaryFiles = @(Get-ChildItem -Force -Recurse -Path $testRoot -Filter "*.tmp")
+          if ($temporaryFiles.Count -ne 0) {
+            throw "Temporary files were left behind: $($temporaryFiles.FullName -join ', ')"
           }
 
           Write-Host "Published ${{ matrix.runtime }} executable extracted the sample successfully: 3 MS1 and 36 MS2 scans."
