@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- On Linux, the tool no longer needs ICU (`libicu`). Before, it stopped at startup with a .NET error on systems without ICU, such as minimal containers. The tool now uses .NET's invariant globalization mode on all platforms. Its output does not change.
+
 ## [0.3.0] - 2026-11-23
 
 ### Added

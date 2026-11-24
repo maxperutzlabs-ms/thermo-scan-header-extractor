@@ -12,6 +12,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Optimize>true</Optimize>
+    <!-- No ICU: Linux hosts then need no libicu. The tool formats and parses with the invariant
+         culture only, and Thermo RawFileReader uses other cultures only when a caller asks. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
     <!-- Keep these versions synchronized with the package filenames in thermo-package-source.json. -->

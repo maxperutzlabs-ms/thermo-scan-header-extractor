@@ -37,7 +37,7 @@ The read-only `--thermo-license` command displays the same embedded Thermo agree
 - .NET SDK 8.0 and PowerShell 7 or later to build from source
 - Network access on the first build, to download the Thermo RawFileReader NuGet packages
 
-The build produces a self-contained executable, so end users do not need to install .NET. If you build or run the framework-dependent DLL directly, install the .NET 8 runtime on the target machine. Linux hosts must also have the native libraries required by .NET 8 (including glibc, ICU, OpenSSL, and zlib; exact package names vary by distribution). For macOS, use a .NET 8-supported version (macOS 14 or later) and a matching x64/arm64 build. Mono and Thermo's legacy MSFileReader are not required.
+The build produces a self-contained executable, so end users do not need to install .NET. If you build or run the framework-dependent DLL directly, install the .NET 8 runtime on the target machine. On Linux, the executable needs a glibc-based distribution with the standard C and C++ runtime libraries. It does not need ICU (`libicu`), because it runs in .NET's invariant globalization mode; CI checks that it works in a minimal `ubuntu:24.04` container. For macOS, use a .NET 8-supported version (macOS 14 or later) and a matching x64/arm64 build. Mono and Thermo's legacy MSFileReader are not required.
 
 ## Thermo RawFileReader packages
 
