@@ -111,7 +111,7 @@ To only display the Thermo agreement without accepting it, run `ThermoScanHeader
 
 To check whether the license has been accepted, run `ThermoScanHeaderExtractor --license-status`. The exit code is 0 if it has been accepted and 4 if not. Standard output is then one line of UTF-8 text: the path of the acceptance file. A short status message goes to standard error. If the location of the acceptance file cannot be determined, for example because `THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR` is invalid, the exit code is 5 and standard output is empty. The command never creates or changes the acceptance file or its folder.
 
-To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.3.0`.
+To display only the current version, run `ThermoScanHeaderExtractor --version`. This command does not require license acceptance and prints a single version line, for example `0.3.1`.
 
 The `help` subcommand, `--help`, and `-h` print command usage, the current `major.minor.patch` version, and the required Thermo attribution. By default, extraction writes the following sibling files beside the input (or in the directory given by `-o`), one for each level that has scans:
 
