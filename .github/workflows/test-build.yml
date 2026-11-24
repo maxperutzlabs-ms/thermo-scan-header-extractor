@@ -331,44 +331,6 @@ jobs:
 
           Write-Host "Published ${{ matrix.runtime }} executable extracted the sample successfully: 3 MS1 and 36 MS2 scans."
 
-      # The tool runs in .NET's invariant globalization mode, so Linux hosts need no ICU.
-      # The ubuntu:24.04 image has no ICU. Its TSV output must match the output on the runner.
-      - name: Check extraction without ICU
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          set -euo pipefail
-          root="$RUNNER_TEMP/no-icu"
-          rm -rf "$root"
-          mkdir -p "$root/host-config" "$root/output"
-          executable="./artifacts/ci/${{ matrix.executable }}"
-          fixture="./tests/data/thermo/exploris480_ms1_dia_3cycles.raw"
-          THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR="$root/host-config" "$executable" --agree-to-terms > /dev/null
-          THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR="$root/host-config" \
-            "$executable" "$fixture" --tsv --name host -o "$root/output"
-
-          docker run --rm -v "$PWD:/work:ro" -v "$root/output:/output" -w /work ubuntu:24.04 bash -c '
-            set -euo pipefail
-            if ldconfig -p | grep libicu > /dev/null; then
-              echo "::error::The container has ICU, so this check would prove nothing."
-              exit 1
-            fi
-            export THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR=/tmp/config
-            executable="$1"
-            "$executable" --version
-            "$executable" --agree-to-terms > /dev/null
-            "$executable" --license-status
-            "$executable" "$2" --tsv --name container -o /output
-          ' check "$executable" "$fixture"
-
-          for level in ms1 msn; do
-            if ! cmp "$root/output/host.$level-trace.tsv" "$root/output/container.$level-trace.tsv"; then
-              echo "::error::The $level TSV written without ICU differs from the one written on the runner."
-              exit 1
-            fi
-          done
-          echo "Extraction without ICU works and gives the same TSV files."
-
       - name: Set up Python for the time zone and console checks
         if: runner.os == 'Linux' || runner.os == 'Windows'
         uses: actions/setup-python@v5
@@ -476,3 +438,65 @@ jobs:
             }
             Write-Host "TZ=${timeZone}: acquisition_start_time and source_id are as expected."
           }
+
+      # The tool runs in .NET's invariant globalization mode, so Linux hosts need no ICU.
+      # The ubuntu:24.04 image has no ICU (and no tzdata). Extraction there must give the
+      # same output as on the runner. Runs last, because it uses pyarrow from the step above.
+      - name: Check extraction without ICU
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The runner has ICU, so this shows that the check inside the container can find it.
+          libraries=$(ldconfig -p)
+          if ! grep -q libicu <<< "$libraries"; then
+            echo "::error::ldconfig lists no ICU on the runner, so the ICU check cannot be trusted."
+            exit 1
+          fi
+
+          root="$RUNNER_TEMP/no-icu"
+          rm -rf "$root"
+          mkdir -p "$root/host-config" "$root/output"
+          executable="./artifacts/ci/${{ matrix.executable }}"
+          fixture="./tests/data/thermo/exploris480_ms1_dia_3cycles.raw"
+          export THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR="$root/host-config"
+          "$executable" --agree-to-terms > /dev/null
+          "$executable" "$fixture" --name host -o "$root/output"
+          "$executable" "$fixture" --tsv --name host -o "$root/output"
+
+          docker run --rm -v "$PWD:/work:ro" -v "$root/output:/output" -w /work ubuntu:24.04 bash -c '
+            set -euo pipefail
+            libraries=$(ldconfig -p)
+            if grep -q libicu <<< "$libraries"; then
+              echo "::error::The container has ICU, so this check would prove nothing."
+              exit 1
+            fi
+            export THERMO_SCAN_HEADER_EXTRACTOR_CONFIG_DIR=/tmp/config
+            executable="$1"
+            "$executable" --version
+            "$executable" --agree-to-terms > /dev/null
+            "$executable" --license-status
+            "$executable" "$2" --name container -o /output
+            "$executable" "$2" --tsv --name container -o /output
+          ' check "$executable" "$fixture"
+
+          for level in ms1 msn; do
+            if ! cmp "$root/output/host.$level-trace.tsv" "$root/output/container.$level-trace.tsv"; then
+              echo "::error::The $level TSV file written without ICU differs from the one written on the runner."
+              exit 1
+            fi
+          done
+          python - "$root/output" <<'PYTHON'
+          import sys
+          import pyarrow.parquet as pq
+          output = sys.argv[1]
+          for level in ("ms1", "msn"):
+              host = pq.read_table(f"{output}/host.{level}-trace.parquet")
+              container = pq.read_table(f"{output}/container.{level}-trace.parquet")
+              # extracted_at is the time of the extraction, so it always differs.
+              host_metadata = {k: v for k, v in host.schema.metadata.items() if k != b"extracted_at"}
+              container_metadata = {k: v for k, v in container.schema.metadata.items() if k != b"extracted_at"}
+              if not container.equals(host) or container_metadata != host_metadata:
+                  sys.exit(f"::error::The {level} Parquet file written without ICU differs from the one written on the runner.")
+          PYTHON
+          echo "Extraction without ICU works and gives the same TSV and Parquet files."
